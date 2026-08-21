@@ -1,0 +1,60 @@
+# ---------------------------------------------------------------------------
+# 이미지 컨텍스트에서 제외할 것. 기준은 "런타임에 필요한가"다.
+# 빌드는 컨테이너 안에서 pnpm install + build 로 다시 하므로 호스트 산출물은 넣지 않는다.
+# ---------------------------------------------------------------------------
+
+# 호스트 의존성·산출물 (플랫폼이 달라 재사용하면 오히려 깨진다)
+node_modules
+**/node_modules
+dist
+**/dist
+build
+**/build
+*.tsbuildinfo
+.vite
+
+# 자격증명 — 절대 이미지에 굽지 않는다. 런타임에 환경변수로 주입한다.
+.env
+.env.*
+!.env.example
+
+# 로컬 SQLite DB. 컨테이너에서는 볼륨에 새로 만든다.
+# prisma/schema.prisma 와 migrations/ 는 migrate deploy 에 필요하므로 포함한다.
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+apps/api/prisma/*.db-shm
+apps/api/prisma/*.db-wal
+
+# 키움 스펙 원본(2.4MB)과 조회 스킬은 개발 도구다.
+# 코드 생성 결과(packages/kiwoom-codes/src/generated)는 커밋된 소스라 런타임에 불필요하다.
+kiwoom-rest-api-spec.json
+.claude
+
+# 문서
+*.md
+!apps/**/README.md
+
+# 테스트 (이미지에 넣지 않는다. CI 에서 별도로 돌린다)
+**/*.spec.ts
+**/*.test.ts
+coverage
+
+# VCS·에디터·캐시
+.git
+.gitignore
+.gitattributes
+.github
+.vscode
+.idea
+.cache
+.eslintcache
+__pycache__
+**/__pycache__
+*.py[cod]
+
+# 로그·OS
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db

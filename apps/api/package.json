@@ -1,0 +1,42 @@
+{
+  "name": "@stock/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "키움 BFF — 토큰 관리 / REST 프록시 / 단일 WebSocket 세션 / 주문 저널",
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "db:generate": "dotenv -e ../../.env -- prisma generate",
+    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "db:studio": "dotenv -e ../../.env -- prisma studio"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.11",
+    "@nestjs/core": "^11.0.11",
+    "@nestjs/platform-express": "^11.0.11",
+    "@nestjs/platform-ws": "^11.0.11",
+    "@nestjs/websockets": "^11.0.11",
+    "@prisma/client": "^6.4.1",
+    "@stock/contracts": "workspace:*",
+    "@stock/kiwoom-codes": "workspace:*",
+    "dotenv": "^16.4.7",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "ws": "^8.18.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.5",
+    "@nestjs/schematics": "^11.0.2",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.13.5",
+    "@types/ws": "^8.18.0",
+    "dotenv-cli": "^8.0.0",
+    "prisma": "^6.4.1",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.7"
+  }
+}

@@ -1,0 +1,90 @@
+// 우리 DB 가 보관하는 것은 "키움에 없는 것"뿐이다.
+//
+// 시세·잔고·예수금의 진실은 키움 서버에 있으므로 캐시하지 않는다. DB 가 필요한 이유는
+// 데이터 보관이 아니라 (1) 주문 멱등성 (2) 접수→체결 사이의 상태 추적 (3) 감사 기록이다.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// 주문 저널. 키움에 전송하기 **전에** 먼저 이 행을 만든다(멱등키 선점).
+/// 키움 주문 API 는 멱등하지 않아 재시도가 곧 중복 주문이 되므로, 중복 판정은
+/// 전송 결과가 아니라 이 테이블의 unique 제약이 한다.
+model Order {
+  id             String   @id @default(cuid())
+  /// 클라이언트가 생성한 멱등키. 같은 키의 두 번째 요청은 키움으로 나가지 않는다.
+  idempotencyKey String   @unique
+  /// 키움이 부여한 주문번호. 접수 전/실패 시 null.
+  orderNo        String?
+  /// 정정·취소의 원주문번호
+  originalOrderNo String?
+  code           String
+  name           String?
+  /// 'buy' | 'sell'
+  side           String
+  /// 'limit' | 'market'
+  orderType      String
+  /// 'KRX' | 'NXT' | 'SOR'
+  exchange       String
+  quantity       Int
+  price          Int?
+  filledQuantity Int      @default(0)
+  averageFilledPrice Int?
+  /// contracts 의 OrderStatus
+  status         String   @default("submitting")
+  /// 'mock' | 'real' — 실전/모의 주문을 절대 섞어 집계하지 않기 위해 행에 기록한다.
+  env            String
+  failureReason  String?
+  /// 키움 요청/응답 원문(감사용). 민감정보(토큰)는 제외하고 저장한다.
+  requestSnapshot  String?
+  responseSnapshot String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  events OrderEvent[]
+
+  @@index([code, createdAt])
+  @@index([status])
+  @@index([orderNo])
+}
+
+/// 주문 상태 전이 이력. 실시간 `00`(주문체결) 이벤트와 우리 판단을 append-only 로 남긴다.
+/// 손익·체결 재계산은 이 이력을 되짚어 한다(현재 상태만 덮어쓰지 않는다).
+model OrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// 'submitted' | 'accepted' | 'filled' | 'partiallyFilled' | 'canceled' | 'rejected' | 'error'
+  kind      String
+  /// 키움 실시간 913(주문상태) 등 원문 라벨
+  sourceLabel String?
+  filledQuantity Int?
+  filledPrice    Int?
+  /// 이벤트 원문 JSON (감사용)
+  payload   String?
+  occurredAt DateTime @default(now())
+
+  @@index([orderId, occurredAt])
+}
+
+/// 종목 마스터 캐시. 하루 한 번 ka10099 로 갱신하면 되는 정적 데이터라
+/// 매 요청 조회로 유량을 쓰지 않기 위해서만 둔다(없어도 동작에 지장 없음).
+///
+/// **키가 (market, code) 복합키인 이유**: ka10099 의 시장 구분은 배타적이지 않다.
+/// 코스피 목록(mrkt_tp=0)에 KOSPI 상장 ETF 가 함께 들어오고, 같은 코드가 ETF
+/// 목록(mrkt_tp=8)에도 나온다. code 단일 키로 두면 나중에 조회한 시장이 앞의 것을
+/// 덮어써서, 같은 요청이 첫 호출과 두 번째 호출에 다른 개수를 돌려준다(실측).
+/// 캐시는 "그 시장을 물어본 결과"이므로 시장별로 따로 보관한다.
+model SymbolCache {
+  market    String
+  code      String
+  name      String
+  updatedAt DateTime @updatedAt
+
+  @@id([market, code])
+}

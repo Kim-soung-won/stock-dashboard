@@ -1,0 +1,40 @@
+# 의존성
+node_modules/
+.pnpm-store/
+
+# 빌드 산출물
+dist/
+build/
+*.tsbuildinfo
+.vite/
+
+# 환경변수 — .env.example 만 커밋한다
+.env
+.env.*
+!.env.example
+
+# Prisma (SQLite 로컬 DB). 스키마와 migrations/ 는 커밋한다
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+apps/api/prisma/*.db-shm
+apps/api/prisma/*.db-wal
+
+# 테스트/도구 캐시
+coverage/
+.cache/
+.eslintcache
+__pycache__/
+*.py[cod]
+
+# 로그
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# 에디터 / OS
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db

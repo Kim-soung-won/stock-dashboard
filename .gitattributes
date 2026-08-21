@@ -1,0 +1,11 @@
+# 저장소 안에서는 LF 로 통일한다. Windows/Git Bash 혼용 환경에서 줄바꿈만 바뀐
+# diff 가 생기는 것을 막는다.
+* text=auto eol=lf
+
+# 바이너리/생성물 취급
+*.png binary
+*.jpg binary
+*.ico binary
+pnpm-lock.yaml -diff linguist-generated
+kiwoom-rest-api-spec.json -diff linguist-generated
+packages/kiwoom-codes/src/generated/** -diff linguist-generated

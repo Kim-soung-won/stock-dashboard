@@ -1,0 +1,33 @@
+{
+  "name": "stock",
+  "private": true,
+  "version": "0.1.0",
+  "description": "키움증권 OpenAPI 기반 실시간 시세 대시보드 + 계좌/주문 연동",
+  "packageManager": "pnpm@10.5.2",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm build:packages && pnpm --parallel --filter \"./apps/*\" dev",
+    "dev:api": "pnpm --filter @stock/api dev",
+    "dev:web": "pnpm --filter @stock/web dev",
+    "build:packages": "pnpm --filter \"./packages/*\" build",
+    "build": "pnpm build:packages && pnpm --filter \"./apps/*\" build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:generate": "pnpm --filter @stock/api db:generate",
+    "db:migrate": "pnpm --filter @stock/api db:migrate",
+    "gen:kiwoom": "python .claude/skills/kiwoom-api/scripts/gen_ts_codes.py"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "esbuild"
+    ]
+  }
+}
