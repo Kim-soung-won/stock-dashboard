@@ -1,41 +1,90 @@
 import { useQuery } from '@tanstack/react-query';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useLogout, useSession } from '@/entities/auth/session';
+import { leaderboardQueries } from '@/entities/competition/leaderboard';
+import { portfolioQueries } from '@/entities/competition/portfolio';
 import { healthQueries } from '@/entities/system/health';
-import { menuItems } from '@/shared/lib';
+import { formatWon, menuItems, pathKeys } from '@/shared/lib';
 import { DebugPanel } from '@/shared/ui';
 
 /**
- * 앱 셸. 슬라이스가 아니라 진입점이므로 src 직속에 둔다(하우스 스타일: app 계층 없음).
+ * 앱 셸 — STOCK ARCADE 상단 헤더 + 본문.
  *
- * 실전/모의 배지를 셸에 박아둔 이유: 어느 화면에 있든 실주문 환경인지 보여야 한다.
+ * claude.ai/design "Stock Arcade Dashboard" 를 이식한 스킨. 아케이드 게임기처럼
+ * 헤더에 SCORE(내 평가금액) / HI-SCORE(리더보드 1위)를 상시 띄워, 어느 화면에 있든
+ * 지금 내 순위·환경(MOCK/REAL)이 보이게 한다. 실전/모의 배지는 절대 눈에 덜 띄게 하지 않는다.
  */
 export const AppLayout = () => {
+  const navigate = useNavigate();
   const { data: health } = useQuery(healthQueries.status());
+  const { participant } = useSession();
+  const { data: portfolio } = useQuery(portfolioQueries.current());
+  const { data: leaderboard } = useQuery(leaderboardQueries.current());
+  const logout = useLogout();
   const isReal = health?.kiwoomEnv === 'real';
+
+  // 헤더는 그룹을 펼쳐 한 줄 네비로 보여준다(아케이드 캐비닛 상단 메뉴).
+  const links = menuItems.flatMap(
+    (group) => group.items as readonly { label: string; to: string }[],
+  );
+  const score = portfolio ? formatWon(portfolio.totalValue) : '—';
+  const hiScore = leaderboard?.entries[0] ? formatWon(leaderboard.entries[0].totalValue) : '—';
+
+  const onLogout = () => {
+    logout();
+    navigate(pathKeys.auth.login);
+  };
 
   return (
     <div className="shell">
-      <aside className="shell__nav">
+      <header className="shell__header">
         <div className="shell__brand">
-          키움 대시보드
+          <span className="shell__brand-stock">STOCK</span>
+          <span className="shell__brand-arcade">ARCADE</span>
+          <span className="shell__brand-ver">v0.1</span>
           <span className={'env-badge ' + (isReal ? 'env-badge--real' : 'env-badge--mock')}>
             {isReal ? 'REAL' : 'MOCK'}
           </span>
         </div>
-        {menuItems.map((group) => (
-          <nav key={group.group} className="shell__group">
-            <h3>{group.group}</h3>
-            {group.items.map((item) => (
-              <NavLink key={item.to} to={item.to} className="shell__link">
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-        ))}
-      </aside>
+
+        <nav className="shell__nav">
+          {links.map((item) => (
+            <NavLink key={item.to} to={item.to} className="shell__link">
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="shell__scores">
+          <div className="shell__score">
+            <div className="shell__score-label">SCORE</div>
+            <div className="shell__score-value">{score}</div>
+          </div>
+          <div className="shell__score">
+            <div className="shell__score-label">HI-SCORE</div>
+            <div className="shell__score-value shell__score-value--hi">{hiScore}</div>
+          </div>
+
+          <div className="shell__session">
+            <span className={'shell__session-dot ' + (isReal ? 'shell__session-dot--real' : '')} />
+            <span>키움 세션 READY · {isReal ? '실전' : '모의'}</span>
+          </div>
+
+          {participant ? (
+            <div className="shell__user">
+              <span className="shell__user-name">{participant.nickname}</span>
+              <button type="button" className="shell__logout" onClick={onLogout}>
+                로그아웃
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </header>
+
       <main className="shell__main">
         <Outlet />
       </main>
+
       {/* 개발자도구 없이도 원인을 볼 수 있는 창구. Ctrl+Shift+D */}
       <DebugPanel />
     </div>

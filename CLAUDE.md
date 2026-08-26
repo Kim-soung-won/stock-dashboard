@@ -4,7 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 저장소 개요
 
-키움 OpenAPI 기반 실시간 시세 대시보드 + 계좌/주문 연동. pnpm 워크스페이스 모노레포.
+키움 OpenAPI 기반 실시간 시세 대시보드 + 계좌/주문 연동 + **모의투자 경쟁**(여러 명이
+각자 100만원 시드로 실시간 시세로 겨루는 페이퍼 트레이딩). pnpm 워크스페이스 모노레포.
 
 ```
 apps/api        NestJS BFF (토큰·REST 프록시·단일 WS 세션·주문 저널) + Prisma/SQLite
@@ -57,6 +58,10 @@ python .claude/skills/kiwoom-api/scripts/kiwoom_spec.py errors 8005
 - **주문은 멱등하지 않다.** 클라이언트 멱등키 → 저널 선점 → 전송 순서를 바꾸지 않는다.
   `ord_no` 는 접수일 뿐이고 체결은 실시간 `00` 이벤트로 확정한다.
 - **HTTP 200 ≠ 성공.** 키움 응답은 `return_code`, BFF 응답은 봉투 `code` 로 판정한다.
+- **경쟁(페이퍼)과 실계좌는 완전히 분리한다.** `competition`/`auth` 도메인의 현금·보유·체결은
+  우리 DB 가 진실(시세와 반대)이고, 키움 주문 API 를 쓰지 않는다. 체결가는 서버가 관측한
+  시세(getQuote)로만 정하고 클라이언트 가격은 신뢰하지 않는다. 순위는 REST 폴링이 아니라
+  WS `0B` 틱으로 채운 가격북을 2초 주기로 팬아웃한다(`leaderboard` 메시지). 상세는 `ARCHITECTURE.md`.
 - 실시간 타입 코드는 대소문자 구분(`0G` vs `0g`). 이 때문에 PowerShell `ConvertFrom-Json`
   은 스펙 파싱에 실패한다 — 스펙을 다룰 때는 Python.
 
@@ -105,6 +110,9 @@ python .claude/skills/kiwoom-api/scripts/kiwoom_spec.py errors 8005
 
 Windows 11 / PowerShell 기본, Bash(Git Bash)도 사용 가능. Node 24, pnpm 10, Python 3.11.
 git 저장소이지만 아직 커밋이 없다(`main` 브랜치, 초기 커밋 전).
+
+경쟁 로그인 토큰은 `SESSION_SECRET`(HMAC 서명 키)으로 서명한다 — `.env.example` 에 있고
+개발용 기본값이 있으나 운영에서는 교체한다. 바꾸면 발급된 모든 토큰이 무효가 된다.
 
 `.env` 는 루트 하나만 쓰고 커밋하지 않는다(`.env.example` 만 커밋). `.gitignore` 는
 `dist/`·`node_modules/`·SQLite DB(`apps/api/prisma/*.db`)를 제외하고, `.dockerignore` 는

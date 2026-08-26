@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { executionSchema } from './account';
+import { leaderboardSchema } from './competition';
 import { marketStatusSchema, orderBookSchema, priceDirectionSchema } from './market';
 
 /**
@@ -49,6 +50,8 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('marketStatus'), payload: marketStatusSchema }),
   /** 키움 실시간 `00` 주문체결 */
   z.object({ type: z.literal('execution'), payload: executionSchema }),
+  /** 모의투자 순위 갱신. 보유종목 시세가 움직이면 BFF 가 주기적으로 밀어준다(공개) */
+  z.object({ type: z.literal('leaderboard'), payload: leaderboardSchema }),
   /** 키움 세션 상태. disconnected 면 화면에 경고를 띄운다 */
   z.object({
     type: z.literal('sessionState'),

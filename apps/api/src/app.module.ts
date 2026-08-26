@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AccountModule } from './account/account.module';
+import { AuthModule } from './auth/auth.module';
+import { CompetitionModule } from './competition/competition.module';
 import { HealthController } from './common/health.controller';
 import { KiwoomModule } from './kiwoom/kiwoom.module';
 import { MarketModule } from './market/market.module';
@@ -15,6 +17,8 @@ import { TradingModule } from './trading/trading.module';
     AccountModule,
     TradingModule,
     RealtimeModule,
+    AuthModule,
+    CompetitionModule,
   ],
   controllers: [HealthController],
 })

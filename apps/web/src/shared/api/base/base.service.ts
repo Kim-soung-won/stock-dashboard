@@ -1,10 +1,13 @@
 import type { z } from 'zod';
+import { authStore } from '@/shared/lib/auth-store';
 
 /**
  * BFF 호출 공용 인프라 (도메인 아님 — 수정 시 전체에 영향).
  *
  * 키움을 직접 부르지 않는다. appkey/토큰은 BFF 에만 있고, 브라우저는 정규화된
  * 도메인 모델만 받는다.
+ *
+ * 경쟁 로그인 토큰이 있으면 `Authorization: Bearer` 로 실어 보낸다(참가자 스코프 API).
  */
 
 export class ApiError extends Error {
@@ -19,15 +22,29 @@ export class ApiError extends Error {
   }
 }
 
+const authHeaders = (): Record<string, string> => {
+  const token = authStore.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 const request = async (path: string, init?: RequestInit): Promise<unknown> => {
   const response = await fetch(path, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders(),
+      ...(init?.headers ?? {}),
+    },
   });
+
+  // 토큰 만료/무효는 401 로 온다. 남은 토큰이 재요청을 계속 실패시키지 않도록 비운다.
+  if (response.status === 401) {
+    authStore.clear();
+  }
 
   const body: unknown = await response.json().catch(() => null);
   if (body === null) {
-    throw new ApiError(response.status, '응답을 해석할 수 없습니다');
+    throw new ApiError(response.status, response.status === 401 ? '로그인이 필요합니다' : '응답을 해석할 수 없습니다');
   }
 
   const envelope = body as {

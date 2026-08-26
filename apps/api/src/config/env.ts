@@ -26,6 +26,11 @@ const envSchema = z.object({
    * (1700/1701/1702)만 정의돼 있어, 보수적 기본값으로 두고 실측 후 조정한다.
    */
   KIWOOM_RPS: z.coerce.number().positive().default(4),
+  /**
+   * 모의투자 경쟁 로그인 토큰(HMAC) 서명 키. 개발 편의로 기본값을 두지만,
+   * 이 값이 노출되면 아무나 토큰을 위조할 수 있으니 운영에서는 반드시 교체한다.
+   */
+  SESSION_SECRET: z.string().min(1).default('dev-insecure-session-secret'),
 });
 
 export type Env = z.infer<typeof envSchema>;

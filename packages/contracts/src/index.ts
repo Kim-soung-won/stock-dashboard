@@ -3,6 +3,7 @@ export * from './market';
 export * from './ranking';
 export * from './account';
 export * from './trading';
+export * from './competition';
 export * from './realtime';
 export * from './system';
 export * from './routes';

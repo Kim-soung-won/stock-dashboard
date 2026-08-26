@@ -1,3 +1,4 @@
+export { authStore, useAuthToken } from './auth-store';
 export type { DebugEntry, DebugLevel } from './debug-log';
 export { debugLog } from './debug-log';
 export type { ErrorReport } from './error-report';

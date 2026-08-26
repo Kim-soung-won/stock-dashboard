@@ -12,4 +12,11 @@ export const pathKeys = {
   trading: {
     order: '/trading/order',
   },
+  competition: {
+    leaderboard: '/competition/leaderboard',
+    portfolio: '/competition/portfolio',
+  },
+  auth: {
+    login: '/login',
+  },
 } as const;

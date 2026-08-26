@@ -34,6 +34,12 @@ export const formatCompact = (value: number | null): string => {
   return numberFormat.format(value);
 };
 
+/** 손익 부호 → 방향. 양수 상승(빨강), 음수 하락(파랑), 0/없음 보합. */
+export const signDirection = (value: number | null): PriceDirection => {
+  if (value === null || value === 0) return 'flat';
+  return value > 0 ? 'up' : 'down';
+};
+
 /** 상승은 빨강, 하락은 파랑 — 국내 관례. */
 export const directionClassName = (direction: PriceDirection): string => {
   if (direction === 'up' || direction === 'upperLimit') return 'value-up';

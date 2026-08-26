@@ -2,7 +2,7 @@ import type { Server as HttpServer } from 'node:http';
 import { Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { API_ROUTES, clientMessageSchema } from '@stock/contracts';
-import type { ServerMessage } from '@stock/contracts';
+import type { Leaderboard, ServerMessage } from '@stock/contracts';
 import type { RealtimeType } from '@stock/kiwoom-codes';
 import { WebSocket, WebSocketServer } from 'ws';
 import { KiwoomWsSession } from '../kiwoom/kiwoom-ws.session';
@@ -172,6 +172,11 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnApplicationShu
 
   private broadcastAll(message: ServerMessage): void {
     for (const client of this.clients.keys()) this.send(client, message);
+  }
+
+  /** 모의투자 순위 팬아웃(공개). CompetitionModule 의 LeaderboardService 가 호출한다. */
+  broadcastLeaderboard(leaderboard: Leaderboard): void {
+    this.broadcastAll({ type: 'leaderboard', payload: leaderboard });
   }
 
   private send(client: WebSocket, message: ServerMessage): void {

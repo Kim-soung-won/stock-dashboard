@@ -72,6 +72,100 @@ model OrderEvent {
   @@index([orderId, occurredAt])
 }
 
+/// ─────────────────────────────────────────────────────────────────────────
+/// 모의투자 경쟁 (페이퍼 트레이딩).
+///
+/// 시세와 달리 여기서는 우리 DB 가 **진실**이다. 각 참가자는 시즌별로 같은 시드머니로
+/// 시작해 실제 시세로 가상 매매하고, 순위는 보유종목을 현재가로 평가해 계산한다.
+/// 키움 계좌·주문 API 는 이 도메인에 관여하지 않는다.
+/// ─────────────────────────────────────────────────────────────────────────
+
+/// 경쟁 참가자. 닉네임+PIN 만으로 참가한다(캐주얼). PIN 은 scrypt 해시로만 보관한다.
+model Participant {
+  id           String   @id @default(cuid())
+  nickname     String   @unique
+  /// scrypt 해시 (`salt:derivedKey`, 둘 다 hex). 평문 PIN 은 저장하지 않는다.
+  pinHash      String
+  createdAt    DateTime @default(now())
+
+  portfolios   Portfolio[]
+}
+
+/// 시즌. 이 창(startAt~endAt) 안에서만 체결이 허용되고, 종료 시 순위가 확정된다.
+model Season {
+  id           String   @id @default(cuid())
+  name         String
+  /// 시드머니(원). 모두 같은 금액으로 출발한다(기본 1,000,000)
+  startingCash Int
+  startAt      DateTime
+  endAt        DateTime
+  /// 'active' 시즌은 동시에 하나만 두는 것을 서비스가 보장한다
+  status       String   @default("active")
+  createdAt    DateTime @default(now())
+
+  portfolios   Portfolio[]
+}
+
+/// (참가자 × 시즌) 포트폴리오. 현금 잔고의 진실. 보유는 Holding, 이력은 PaperTrade.
+model Portfolio {
+  id            String   @id @default(cuid())
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  seasonId      String
+  season        Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  /// 시드머니 스냅샷(원). 시즌 설정이 바뀌어도 이 참가자의 기준선은 고정된다
+  startingCash  Int
+  /// 현재 현금 잔고(원)
+  cash          Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  holdings      Holding[]
+  trades        PaperTrade[]
+
+  /// 한 시즌에 참가자당 포트폴리오 1개
+  @@unique([participantId, seasonId])
+  @@index([seasonId])
+}
+
+/// 보유 종목. 수량 0 이 되면 행을 삭제한다(빈 보유를 남기지 않는다).
+model Holding {
+  id           String   @id @default(cuid())
+  portfolioId  String
+  portfolio    Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  code         String
+  name         String
+  quantity     Int
+  /// 매입평균가(원, 수수료 제외)
+  averagePrice Int
+  updatedAt    DateTime @updatedAt
+
+  @@unique([portfolioId, code])
+}
+
+/// 가상 체결 저널(append-only). 감사·이력 표시용. 잔고 재계산의 근거이기도 하다.
+model PaperTrade {
+  id           String   @id @default(cuid())
+  portfolioId  String
+  portfolio    Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  code         String
+  name         String
+  /// 'buy' | 'sell'
+  side         String
+  quantity     Int
+  /// 체결 단가(원)
+  price        Int
+  /// 매매수수료(원)
+  fee          Int
+  /// 거래세(원, 매도만)
+  tax          Int
+  /// 이 체결로 오간 순현금(원). 매수 음수, 매도 양수
+  cashDelta    Int
+  createdAt    DateTime @default(now())
+
+  @@index([portfolioId, createdAt])
+}
+
 /// 종목 마스터 캐시. 하루 한 번 ka10099 로 갱신하면 되는 정적 데이터라
 /// 매 요청 조회로 유량을 쓰지 않기 위해서만 둔다(없어도 동작에 지장 없음).
 ///
