@@ -8,8 +8,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 /// 주문 저널. 키움에 전송하기 **전에** 먼저 이 행을 만든다(멱등키 선점).
