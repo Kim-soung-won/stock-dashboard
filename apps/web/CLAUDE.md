@@ -40,7 +40,7 @@ React + Vite 대시보드(FSD 4계층). 이 파일은 **이 앱의 기능 인벤
 | auth/login | `form-login` | 닉네임+PIN 참가/로그인 |
 | competition/leaderboard | `table-leaderboard`·`chart-leaderboard` | 실시간 순위표(WS) + 총평가금액 추이 라인차트(ECharts, 스냅샷 REST) |
 | competition/portfolio | `summary-portfolio`·`table-holdings`·`table-trades` | 포트폴리오 요약·보유·체결 |
-| competition/trade | `form-trade` | 시장가 페이퍼 매매(종목명 검색 + `symbol` prop 프리필, **장 운영시간 밖에는 잠금**, 성공 시 포트폴리오·리더보드 무효화) |
+| competition/trade | `form-trade`(+`trade-confirm` 코로케이션) | 시장가 페이퍼 매매(종목명 검색 + `symbol` prop 프리필, **장 운영시간 밖 잠금**, **확인 다이얼로그로 예수금 영향 안내 후 체결**) |
 | market/chart | `chart-candle` | 봉 차트(ECharts). 헤더에 **종목명** 표기(`name` prop) |
 | market/quote | `table-watchlist`·`form-add-watch` | 관심종목 실시간 시세표 + **종목명 검색 추가 폼**(대시보드·관심종목 페이지 공용) |
 | market/ranking | `table-ranking` | 순위표(인기·시가총액·거래량·거래대금·등락률) + **★ 관심 토글** |
@@ -68,7 +68,8 @@ React + Vite 대시보드(FSD 4계층). 이 파일은 **이 앱의 기능 인벤
 | 프로필 드롭다운 | 내 화면 4개 + 로그아웃(바깥 클릭·Escape·경로 변경 시 닫힘) | `src/user-menu.tsx` |
 | 사용자 식별 | 모든 요청에 `X-User-Id`(디바이스 id) 첨부 | `shared/api/base`, `shared/lib/client-id.ts` |
 | 디버그 패널 | 에러·쿼리 실패·실시간 변화 창구(`Ctrl+Shift+D`) | `shared/ui/debug-panel` |
-| 공용 UI | `Panel`·`StatusDot`·`ValueText`·`ErrorBoundary`·`QueryErrorBoundary`·`StaleOverlay` | `shared/ui` |
+| 공용 UI | `Panel`·`Dialog`·`StatusDot`·`ValueText`·`ErrorBoundary`·`QueryErrorBoundary`·`StaleOverlay` | `shared/ui` |
+| 다이얼로그 | 네이티브 `<dialog>` + `showModal()` — 포커스 트랩·Esc·배경은 브라우저가 처리 | `shared/ui/dialog` |
 | 디자인 토큰 | 타입 스케일·컨트롤 높이·여백·모서리 (아래 표) | `src/index.css` `:root` |
 
 > 관심종목 ★ 는 `market/symbol`·`market/ranking` 행에 통합돼 있다(feature → `entities/watchlist`
@@ -79,6 +80,11 @@ React + Vite 대시보드(FSD 4계층). 이 파일은 **이 앱의 기능 인벤
 > `useSymbolPicker`(+ `resolveSymbolCode`), 표시는 `shared/ui` SymbolSearchInput. 그래서
 > 서로 다른 도메인의 feature(`competition/trade`·`trading/order`·`market/quote`)가 같은
 > 입력을 쓰면서도 feature 끼리 import 하지 않는다.
+>
+> **돈이 오가는 동작은 금액을 먼저 보여준다.** 시장가라 사용자는 얼마가 빠져나가는지
+> 모른 채 버튼을 누른다 — `FormTrade` 는 바로 체결하지 않고 `Dialog` 로 거래대금·수수료·
+> 세금과 **체결 후 예수금**을 보여준 뒤 확정을 받는다. 금액 계산은 서버가 실제 현금을
+> 옮길 때 쓰는 식(`@stock/contracts` 의 `previewTrade`)과 같은 것이라 어긋나지 않는다.
 >
 > **종목을 고르면 차트와 주문 창이 함께 따라온다.** 표(feature)는 `SelectSymbol` 콜백으로
 > `{code, name}` 을 올려보내고, 페이지가 상태로 쥐고 `ChartCandle`·`FormTrade` 에 내린다.

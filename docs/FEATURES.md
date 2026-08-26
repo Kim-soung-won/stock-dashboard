@@ -29,6 +29,7 @@
 | --- | --- | --- | --- |
 | 참가/로그인 (닉네임+PIN) | ✅ | `POST /api/auth/login` · `GET /api/auth/me` · `/login` | `auth.service`·`auth.tokens` |
 | 시장가 페이퍼 매매 | ✅ | `POST /api/competition/trade` | `competition.service`(돈계산·가드) |
+| 매매 확인 다이얼로그 (예수금 영향 안내) | ✅ | 매매 폼 | `trade-preview`(contracts)·`form-trade.spec` |
 | 거래시간 제한 (평일 09:00~15:30) | ⚠️✅ | 같은 엔드포인트 · 매매 폼 잠금 | `market-hours`(contracts)·`market-hours.model` |
 | 내 포트폴리오 | ✅ | `GET /api/competition/portfolio` · `/competition/portfolio` | `competition.mapper`·`portfolio.libs` |
 | 리더보드 (실시간 순위) | ✅ | `GET /api/competition/leaderboard` · `WS leaderboard` · `/competition/leaderboard` | (WS 팬아웃) |

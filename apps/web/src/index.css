@@ -1219,6 +1219,127 @@ button:disabled {
   pointer-events: none;
 }
 
+/* ---------- 모달 다이얼로그 (네이티브 <dialog>)
+   포커스 트랩·Esc·배경은 브라우저가 처리한다. 여기서는 스킨만 입힌다. */
+.dialog {
+  padding: 0;
+  border: var(--bw) solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  background: var(--bg-panel);
+  color: var(--text);
+  width: min(420px, calc(100vw - 2 * var(--sp-4)));
+  max-height: calc(100vh - 2 * var(--sp-5));
+}
+
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.dialog__panel {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+}
+
+.dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  min-height: 48px;
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: var(--bw2) solid var(--line);
+}
+
+.dialog__title {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.dialog__close {
+  width: auto;
+  min-height: var(--ctl-h-sm);
+  padding: 0 var(--ctl-px-sm);
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.dialog__body {
+  padding: var(--sp-3);
+  overflow-y: auto;
+}
+
+.dialog__foot {
+  display: flex;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-top: var(--bw2) solid var(--line);
+}
+
+/* 두 버튼을 같은 폭으로 — 확인이 취소보다 눈에 띄어야 하지만 크기는 같게 둔다. */
+.dialog__foot button {
+  flex: 1;
+}
+
+/* ---------- 매매 확인 내역 */
+.trade-confirm {
+  margin: 0 0 var(--sp-3);
+}
+
+.trade-confirm__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-1) 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.trade-confirm__row dt {
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+}
+
+.trade-confirm__row dd {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* 종목명은 숫자 폰트가 아니다. */
+.trade-confirm__row dd .grid__name {
+  font-family: var(--font-ui);
+}
+
+/* 예수금 변화 — 이 창을 띄운 이유라 눈에 띄게 둔다. */
+.trade-confirm__row--total {
+  border-bottom: none;
+  padding-top: var(--sp-2);
+}
+
+.trade-confirm__row--total dt {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.trade-confirm__row--total dd strong {
+  color: var(--accent);
+}
+
+.trade-confirm__note {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
 /* ---------- 인앱 디버그 패널 (개발자도구 대체) */
 .debug-toggle {
   position: fixed;

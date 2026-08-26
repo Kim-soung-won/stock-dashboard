@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TradeRequest } from '@stock/contracts';
 import type { MarketService } from '../market/market.service';
 import type { PrismaService } from '../prisma/prisma.service';
-import { BUY_FEE_RATE, feeOf, SELL_FEE_RATE, SELL_TAX_RATE } from './competition.constants';
+import { BUY_FEE_RATE, feeOf, previewTrade, SELL_FEE_RATE, SELL_TAX_RATE } from './competition.constants';
 import { CompetitionService } from './competition.service';
 import type { LeaderboardService } from './leaderboard.service';
 import type { PricebookService } from './pricebook.service';
@@ -350,5 +350,59 @@ describe('CompetitionService.getPortfolio — 포트폴리오 최초 생성', ()
     });
 
     await expect(ctx.service.getPortfolio(participant)).rejects.toThrow('Unique constraint failed');
+  });
+});
+
+/**
+ * 화면이 확인 창에 적는 금액(previewTrade)과 서버가 실제로 옮기는 금액이 **같아야 한다**.
+ * 어긋나면 "안내는 99,985원인데 100,015원이 빠져나가는" 상태가 된다. 두 쪽이 같은 식을
+ * 쓰는지 여기서 직접 대조한다 — 계산이 갈라지면 이 spec 이 먼저 깨진다.
+ */
+describe('체결 결과 = 확인 창 예상치', () => {
+  useMarketOpenClock();
+
+  it('매수: 예상 차감액과 실제 cashDelta 가 같다', async () => {
+    const { service, tx } = makeCtx({ cash: 1_000_000, price: 50_000 });
+    const preview = previewTrade({
+      side: 'buy',
+      price: 50_000,
+      quantity: 3,
+      cash: 1_000_000,
+      holdingQuantity: 0,
+    });
+
+    await service.trade(participant, buy(3));
+
+    expect(tx.paperTrade.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ fee: preview.fee, cashDelta: preview.cashDelta }),
+    });
+    expect(tx.portfolio.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { cash: { decrement: -preview.cashDelta } } }),
+    );
+  });
+
+  it('매도: 예상 정산금액과 실제 cashDelta 가 같다', async () => {
+    const holding = { id: 'h1', quantity: 10, averagePrice: 40_000 };
+    const { service, tx } = makeCtx({ cash: 1_000_000, price: 50_000, holding });
+    const preview = previewTrade({
+      side: 'sell',
+      price: 50_000,
+      quantity: 4,
+      cash: 1_000_000,
+      holdingQuantity: 10,
+    });
+
+    await service.trade(participant, sell(4));
+
+    expect(tx.paperTrade.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        fee: preview.fee,
+        tax: preview.tax,
+        cashDelta: preview.cashDelta,
+      }),
+    });
+    expect(tx.portfolio.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { cash: { increment: preview.cashDelta } } }),
+    );
   });
 });

@@ -1,4 +1,5 @@
 export { DebugPanel } from './debug-panel';
+export { Dialog } from './dialog';
 export { ErrorBoundary, ErrorFallback } from './error-boundary';
 export { Panel } from './panel';
 export { QueryErrorBoundary } from './query-error-boundary';

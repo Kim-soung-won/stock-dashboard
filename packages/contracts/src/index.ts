@@ -5,6 +5,7 @@ export * from './ranking';
 export * from './account';
 export * from './trading';
 export * from './competition';
+export * from './trade-preview';
 export * from './watchlist';
 export * from './profile';
 export * from './realtime';
