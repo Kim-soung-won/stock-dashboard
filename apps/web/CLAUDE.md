@@ -40,7 +40,7 @@ React + Vite 대시보드(FSD 4계층). 이 파일은 **이 앱의 기능 인벤
 | auth/login | `form-login` | 닉네임+PIN 참가/로그인 |
 | competition/leaderboard | `table-leaderboard`·`chart-leaderboard` | 실시간 순위표(WS) + 총평가금액 추이 라인차트(ECharts, 스냅샷 REST) |
 | competition/portfolio | `summary-portfolio`·`table-holdings`·`table-trades` | 포트폴리오 요약·보유·체결 |
-| competition/trade | `form-trade` | 시장가 페이퍼 매매(종목명 검색 + `symbol` prop 으로 선택 종목 프리필, 성공 시 포트폴리오·리더보드 무효화) |
+| competition/trade | `form-trade` | 시장가 페이퍼 매매(종목명 검색 + `symbol` prop 프리필, **장 운영시간 밖에는 잠금**, 성공 시 포트폴리오·리더보드 무효화) |
 | market/chart | `chart-candle` | 봉 차트(ECharts). 헤더에 **종목명** 표기(`name` prop) |
 | market/quote | `table-watchlist`·`form-add-watch` | 관심종목 실시간 시세표 + **종목명 검색 추가 폼**(대시보드·관심종목 페이지 공용) |
 | market/ranking | `table-ranking` | 순위표(인기·시가총액·거래량·거래대금·등락률) + **★ 관심 토글** |
@@ -51,7 +51,7 @@ React + Vite 대시보드(FSD 4계층). 이 파일은 **이 앱의 기능 인벤
 
 ## Entities (서버 상태·도메인 모델)
 
-`auth/session`, `market/{quote,chart,ranking,symbol,session}`, `account/balance`,
+`auth/session`, `market/{quote,chart,ranking,symbol,session}`(session 에 `useMarketHours` 포함), `account/balance`,
 `competition/{leaderboard,portfolio,season}`, `trading/order`, `system/health`,
 `watchlist/item`, `profile/detail`. 각 슬라이스는 `*.queries.ts`(+`*.mutations.ts`·`*.realtime.ts`·`*.libs.ts`)로
 표현하고 배럴 `index.ts` 로만 노출한다.

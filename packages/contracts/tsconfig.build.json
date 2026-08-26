@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "comment": "런타임 빌드용. spec 은 typecheck 에는 포함되고 dist 에는 들어가지 않는다(apps 와 같은 규칙).",
+  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
+}

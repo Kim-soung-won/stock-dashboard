@@ -1,5 +1,6 @@
 export * from './envelope';
 export * from './market';
+export * from './market-hours';
 export * from './ranking';
 export * from './account';
 export * from './trading';

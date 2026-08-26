@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import type { Participant as ParticipantRow, Portfolio as PortfolioRow } from '@prisma/client';
 import type { Portfolio, PaperTrade, Season, TradeRequest, TradeResult } from '@stock/contracts';
+import { isKrxRegularSession, krxClosedReason } from '@stock/contracts';
 import { toParticipant } from '../auth/auth.service';
 import { MarketService } from '../market/market.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -71,6 +72,7 @@ export class CompetitionService {
     const now = Date.now();
     const seasonRow = await this.season.getActiveSeasonRow();
     this.season.assertTradable(seasonRow, now);
+    this.assertMarketOpen(new Date(now));
 
     const code = normalizeCode(request.code);
     // 체결가·종목명은 서버가 관측한 시세에서만 온다(클라이언트 가격은 신뢰하지 않는다).
@@ -180,6 +182,18 @@ export class CompetitionService {
       trade: toPaperTrade(tradeRow),
       portfolio: await this.composePortfolio(participant, fresh),
     };
+  }
+
+  /**
+   * 장 운영시간 밖이면 체결을 거부한다.
+   *
+   * 시세는 장외에도 조회된다 — 다만 그 값은 **전일 종가로 멈춰 있다**. 막지 않으면
+   * 참가자가 이미 결과를 아는 가격으로 밤새 사고팔 수 있어 경쟁이 성립하지 않는다.
+   * 시즌 창(assertTradable)과는 다른 축이라 따로 본다: 시즌은 대회 기간, 이건 장 시간.
+   */
+  private assertMarketOpen(now: Date): void {
+    if (isKrxRegularSession(now)) return;
+    throw new BadRequestException(`${krxClosedReason(now)} — 거래는 평일 09:00~15:30 에만 가능합니다`);
   }
 
   /**

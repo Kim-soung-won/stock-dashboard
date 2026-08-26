@@ -29,6 +29,7 @@
 | --- | --- | --- | --- |
 | 참가/로그인 (닉네임+PIN) | ✅ | `POST /api/auth/login` · `GET /api/auth/me` · `/login` | `auth.service`·`auth.tokens` |
 | 시장가 페이퍼 매매 | ✅ | `POST /api/competition/trade` | `competition.service`(돈계산·가드) |
+| 거래시간 제한 (평일 09:00~15:30) | ⚠️✅ | 같은 엔드포인트 · 매매 폼 잠금 | `market-hours`(contracts)·`market-hours.model` |
 | 내 포트폴리오 | ✅ | `GET /api/competition/portfolio` · `/competition/portfolio` | `competition.mapper`·`portfolio.libs` |
 | 리더보드 (실시간 순위) | ✅ | `GET /api/competition/leaderboard` · `WS leaderboard` · `/competition/leaderboard` | (WS 팬아웃) |
 | 리더보드 추이 라인차트 | ⚠️✅ | `GET /api/competition/leaderboard/history` · 같은 화면 | `leaderboard.service`·`leaderboard-history.libs` |
@@ -86,6 +87,10 @@
   종목 마스터(ka10099)의 `상장주식수 x 전일종가`로 BFF 가 파생해 `SymbolCache` 에 저장하고
   DB 가 정렬한다. **전일 종가 기준**이라 장중에 순위가 움직이지 않고, 전일대비·등락률은
   비어 있다(상위 30종목의 현재가만 실시간 틱이 채운다). ETF 는 제외한다.
+- **거래시간 제한은 공휴일을 모른다**: 판정은 시계(KST 평일 09:00~15:30)로만 한다.
+  실시간 `0s`(장운영구분)가 더 정확하지만 **장외에는 아예 오지 않아** "아직 못 받았다"와
+  "닫혔다"를 구분할 수 없어 거래 차단의 근거로 쓸 수 없다. 휴장일에도 시세가 전일 종가로
+  고정된 채 거래가 열리므로, 막으려면 휴장일 달력이 필요하다.
 - **프로필 공개 범위**: 보유·체결·관심종목이 무인증으로 **누구에게나** 공개된다.
   비공개 토글이 필요하면 `Participant`에 공개설정 필드를 추가해 `ProfileService`에서 거른다.
 - **사용 이력 `X-User-Id`**: 클라이언트가 보내는 디바이스 id 라 **위조 가능**(분석용 보조값).
@@ -93,5 +98,5 @@
 
 ## 다음 후보 (🚧)
 
-- 프로필 공개 범위 설정, 사용 이력 조회용 관리 화면, 체결 시점에도 스냅샷 1점 적재,
+- 휴장일 달력(거래시간 제한 보강), 프로필 공개 범위 설정, 사용 이력 조회용 관리 화면, 체결 시점에도 스냅샷 1점 적재,
   `leaderboard.service` 순위 정렬·`account.service` 오케스트레이션 스펙 보강.

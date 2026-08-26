@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TradeRequest } from '@stock/contracts';
 import type { MarketService } from '../market/market.service';
 import type { PrismaService } from '../prisma/prisma.service';
@@ -102,7 +102,26 @@ const makeCtx = (opts: { cash?: number; holding?: unknown; price?: number | null
 const buy = (quantity: number): TradeRequest => ({ code: '005930', side: 'buy', quantity });
 const sell = (quantity: number): TradeRequest => ({ code: '005930', side: 'sell', quantity });
 
+/** 장중 한 시점(2026-08-26 수요일 11:00 KST = 02:00 UTC). 체결 계약은 장중을 전제한다. */
+const DURING_SESSION = new Date('2026-08-26T02:00:00.000Z');
+
+/**
+ * 돈 계산 spec 은 **장중**을 전제한다. 실제 시각에 맡기면 밤에 돌릴 때만 깨지는
+ * 테스트가 된다(장 운영시간 가드가 먼저 거부한다).
+ */
+const useMarketOpenClock = () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(DURING_SESSION);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+};
+
 describe('CompetitionService.trade — 매수', () => {
+  useMarketOpenClock();
+
   it('거래대금+수수료만큼 현금을 줄이고 평균가를 세운다', async () => {
     const { service, tx } = makeCtx({ cash: 1_000_000, price: 50_000 });
     const amount = 50_000 * 2;
@@ -131,6 +150,8 @@ describe('CompetitionService.trade — 매수', () => {
 });
 
 describe('CompetitionService.trade — 매도', () => {
+  useMarketOpenClock();
+
   it('수수료+거래세를 떼고 순현금을 더한다', async () => {
     const holding = { id: 'h1', portfolioId: 'pf1', code: '005930', name: '삼성전자', quantity: 10, averagePrice: 40_000 };
     const { service, tx } = makeCtx({ holding, price: 50_000 });
@@ -161,6 +182,8 @@ describe('CompetitionService.trade — 매도', () => {
 });
 
 describe('CompetitionService.trade — 가드', () => {
+  useMarketOpenClock();
+
   it('현재가를 확인할 수 없으면 체결하지 않는다', async () => {
     const { service } = makeCtx({ price: null });
     await expect(service.trade(participant, buy(1))).rejects.toBeInstanceOf(BadRequestException);
@@ -173,6 +196,56 @@ describe('CompetitionService.trade — 가드', () => {
     });
     await expect(service.trade(participant, buy(1))).rejects.toBeInstanceOf(BadRequestException);
     expect(market.getQuote).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * 장 운영시간 밖 체결 차단.
+ *
+ * 장외에는 시세가 **전일 종가로 멈춰 있다**. 그 값으로 밤새 사고팔 수 있으면 경쟁이
+ * 성립하지 않으므로, 시세를 조회하기도 전에 거부해야 한다(유량도 아낀다).
+ */
+describe('CompetitionService.trade — 장 운영시간', () => {
+  const tradeAt = async (iso: string) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(iso));
+    const ctx = makeCtx();
+    try {
+      return { result: await ctx.service.trade(participant, buy(1)).catch((e: Error) => e), ctx };
+    } finally {
+      vi.useRealTimers();
+    }
+  };
+
+  it('장중에는 체결된다', async () => {
+    // 수요일 11:00 KST
+    const { result } = await tradeAt('2026-08-26T02:00:00.000Z');
+    expect(result).not.toBeInstanceOf(Error);
+  });
+
+  it('장 마감 후에는 거부한다', async () => {
+    // 수요일 16:00 KST
+    const { result, ctx } = await tradeAt('2026-08-26T07:00:00.000Z');
+    expect(result).toBeInstanceOf(BadRequestException);
+    // 시세를 조회하기도 전에 막는다.
+    expect(ctx.market.getQuote).not.toHaveBeenCalled();
+  });
+
+  it('장 시작 전에는 거부한다', async () => {
+    // 수요일 08:30 KST
+    const { result } = await tradeAt('2026-08-25T23:30:00.000Z');
+    expect(result).toBeInstanceOf(BadRequestException);
+  });
+
+  it('주말에는 거부한다', async () => {
+    // 토요일 11:00 KST — 시간만 보면 장중이다
+    const { result } = await tradeAt('2026-08-29T02:00:00.000Z');
+    expect(result).toBeInstanceOf(BadRequestException);
+  });
+
+  it('거부 사유를 사용자에게 알려준다', async () => {
+    const { result } = await tradeAt('2026-08-26T07:00:00.000Z');
+    expect((result as Error).message).toContain('09:00~15:30');
   });
 });
 

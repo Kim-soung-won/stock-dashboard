@@ -9,6 +9,7 @@ import {
   validateTradeForm,
 } from '@/entities/competition/portfolio';
 import type { TradeFormValues } from '@/entities/competition/portfolio';
+import { useMarketHours } from '@/entities/market/session';
 import { useSymbolPicker } from '@/entities/market/symbol';
 import type { SeedSymbol } from '@/entities/market/symbol';
 import { formatWon } from '@/shared/lib';
@@ -31,6 +32,9 @@ interface FormTradeProps {
  * useSymbolPicker 가 판정하고, 정해지기 전에는 제출을 막는다. `symbol` 을 받으면
  * 그 종목으로 시작한다 — 차트 옆에 붙어 "보는 중인 종목을 바로 매매"하는 용도다.
  *
+ * **장 운영시간 밖에는 잠근다.** 장외에는 시세가 전일 종가로 멈춰 있어 이미 결과를 아는
+ * 가격에 체결되기 때문이다. 실제로 막는 것은 서버이고 여기서는 미리 잠가 이유를 보여준다.
+ *
  * 체결가는 서버가 관측한 현재가로 정해지므로 단가 입력이 없다. 성공하면 포트폴리오·
  * 체결이력·리더보드를 무효화한다 — 여러 슬라이스를 건드리는 조합이라 이 features
  * 계층에서 한다(엔티티끼리 직접 참조하지 않는다).
@@ -41,6 +45,7 @@ export const FormTrade = ({ symbol }: FormTradeProps = {}) => {
   const queryClient = useQueryClient();
   const trade = useTrade();
   const picker = useSymbolPicker(symbol);
+  const marketHours = useMarketHours();
 
   // 종목코드는 폼 상태가 아니라 picker 가 확정하는 파생값이다(effect 로 되쓰지 않는다).
   const formValues: TradeFormValues = { ...values, code: picker.code ?? '' };
@@ -50,6 +55,7 @@ export const FormTrade = ({ symbol }: FormTradeProps = {}) => {
   };
 
   const submit = () => {
+    if (!marketHours.isOpen) return;
     const message = validateTradeForm(formValues);
     setValidationError(message);
     if (message) return;
@@ -112,7 +118,13 @@ export const FormTrade = ({ symbol }: FormTradeProps = {}) => {
         </label>
       </div>
 
-      <p className="form-trade__hint">시장가로 즉시 체결됩니다(체결가 = 현재 시세).</p>
+      {marketHours.isOpen ? (
+        <p className="form-trade__hint">시장가로 즉시 체결됩니다(체결가 = 현재 시세).</p>
+      ) : (
+        <p className="state state--error">
+          {marketHours.closedReason} — 거래는 평일 09:00~15:30 에만 가능합니다.
+        </p>
+      )}
 
       {validationError ? <p className="state state--error">{validationError}</p> : null}
       {trade.isError ? <p className="state state--error">체결 실패: {trade.error.message}</p> : null}
@@ -127,9 +139,9 @@ export const FormTrade = ({ symbol }: FormTradeProps = {}) => {
       <button
         type="submit"
         className={'btn-trade btn-trade--' + values.side}
-        disabled={trade.isPending || !picker.code}
+        disabled={trade.isPending || !picker.code || !marketHours.isOpen}
       >
-        {trade.isPending ? '체결 중…' : SIDE_LABEL[values.side]}
+        {trade.isPending ? '체결 중…' : marketHours.isOpen ? SIDE_LABEL[values.side] : '거래시간 아님'}
       </button>
     </form>
   );
