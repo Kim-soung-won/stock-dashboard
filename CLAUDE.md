@@ -24,6 +24,10 @@ kiwoom-rest-api-spec.json   키움 스펙 원본 (2.4MB, 342 TR) — 통째로 �
 DB 모델), 프론트 `apps/web/CLAUDE.md`(페이지·feature·entities). 기능을 추가/변경/삭제하면 해당
 표를 같은 변경에서 갱신한다(엔드포인트는 계약 → `docs/openapi.ts` → 표가 함께 움직인다).
 
+**개발자 공유용 문서**는 `docs/`(인덱스: `docs/README.md`)에 있다 — `FEATURES.md`(기능 현황표),
+`CHANGELOG.md`(기능 묶음별 이력), `ERD.md`. 기능을 바꾸면 위 앱 `CLAUDE.md` 표와 함께
+`FEATURES.md`를 갱신하고, 사용자에게 드러나는 변화면 `CHANGELOG.md`에 항목을 추가한다.
+
 ## 명령
 
 ```bash
