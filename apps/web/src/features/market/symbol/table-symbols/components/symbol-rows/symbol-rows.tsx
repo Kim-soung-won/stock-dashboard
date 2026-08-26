@@ -2,15 +2,16 @@ import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import type { MarketKind } from '@stock/contracts';
 import { useTickStream } from '@/entities/market/quote';
-import { symbolQueries } from '@/entities/market/symbol';
+import { matchSymbols, symbolQueries } from '@/entities/market/symbol';
 import { useWatchlist } from '@/entities/watchlist/item';
 import { formatRate, formatWon } from '@/shared/lib';
+import type { SelectSymbol } from '@/shared/lib';
 import { StaleOverlay, StarButton, ValueText } from '@/shared/ui';
 
 interface SymbolRowsProps {
   market: MarketKind;
   keyword: string;
-  onSelect?: (code: string) => void;
+  onSelect?: SelectSymbol;
 }
 
 /** 한 페이지에 보여줄 종목 수. 실시간 구독도 이 페이지 것만 등록한다. */
@@ -32,14 +33,11 @@ export const SymbolRows = ({ market, keyword, onSelect }: SymbolRowsProps) => {
   const deferredKeyword = useDeferredValue(keyword);
   const isStale = deferredKeyword !== keyword;
 
-  const filtered = useMemo(() => {
-    const needle = deferredKeyword.trim().toLowerCase();
-    if (!needle) return symbols;
-    return symbols.filter(
-      (symbol) =>
-        symbol.code.toLowerCase().includes(needle) || symbol.name.toLowerCase().includes(needle),
-    );
-  }, [symbols, deferredKeyword]);
+  // 코드·종목명 어느 쪽으로도 검색된다. 판정은 entities 의 matchSymbols 하나로 모은다.
+  const filtered = useMemo(
+    () => matchSymbols(symbols, deferredKeyword),
+    [symbols, deferredKeyword],
+  );
 
   // 검색어·시장이 바뀌면 1페이지로 되돌린다(빈 페이지에 남는 것을 막는다).
   useEffect(() => {
@@ -80,7 +78,7 @@ export const SymbolRows = ({ market, keyword, onSelect }: SymbolRowsProps) => {
               <tr
                 key={symbol.code}
                 className={onSelect ? 'grid__row--clickable' : undefined}
-                onClick={() => onSelect?.(symbol.code)}
+                onClick={() => onSelect?.({ code: symbol.code, name: symbol.name })}
               >
                 <td className="grid__num">
                   <StarButton

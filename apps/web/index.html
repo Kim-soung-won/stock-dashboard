@@ -4,15 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>STOCK ARCADE · 모의투자 리그</title>
-    <!-- 아케이드 픽셀 폰트: Press Start 2P(라틴 헤더) + Galmuri(한글 픽셀 본문) -->
-    <!-- 터미널 테마 폰트: IBM Plex Sans(헤더) + IBM Plex Mono(본문) -->
+    <!--
+      본문/UI: Pretendard — 한글 가독성 기준 폰트. 11~13px 로 촘촘한 표·라벨이 많은
+      화면이라 여기서 읽기 편한지가 결정된다(예전 Galmuri 픽셀 폰트를 대체).
+      숫자: IBM Plex Mono — 가격·수량이 자리수로 정렬돼야 표를 읽을 수 있다.
+      로고: Press Start 2P — 라틴 전용 아케이드 폰트. 한글 글리프가 없으므로
+      제목·본문에 쓰지 않고 로고(STOCK ARCADE)에만 남긴다.
+    -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link href="https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css" rel="stylesheet" />
+    <link
+      rel="stylesheet"
+      as="style"
+      crossorigin
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+    />
   </head>
   <body>
     <div id="root"></div>

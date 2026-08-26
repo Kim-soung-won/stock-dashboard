@@ -23,6 +23,12 @@ const symbolsQuerySchema = z.object({
   market: marketKindSchema.default('kospi'),
 });
 
+/** 종목명·코드 검색. keyword 는 필수(빈 검색으로 전 종목을 퍼가지 못하게 한다). */
+const symbolSearchQuerySchema = z.object({
+  keyword: z.string().trim().min(1).max(40),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
 const candlesQuerySchema = z.object({
   interval: candleIntervalSchema.default('day'),
   baseDate: z.string().regex(/^\d{8}$/).optional(),
@@ -40,6 +46,14 @@ export class MarketController {
   async symbols(@Query() query: unknown): Promise<ApiResponse<ListPayload<StockSymbol>>> {
     const { market } = symbolsQuerySchema.parse(query);
     const items = await this.marketService.getSymbols(market);
+    return ok({ items, total: items.length, nextKey: null });
+  }
+
+  /** 라우트 순서 주의: 'symbols/search' 는 'symbols' 와 다른 경로다(충돌하지 않는다). */
+  @Get('symbols/search')
+  async searchSymbols(@Query() query: unknown): Promise<ApiResponse<ListPayload<StockSymbol>>> {
+    const { keyword, limit } = symbolSearchQuerySchema.parse(query);
+    const items = await this.marketService.searchSymbols(keyword, limit);
     return ok({ items, total: items.length, nextKey: null });
   }
 

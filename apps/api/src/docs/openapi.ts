@@ -100,6 +100,19 @@ export function buildOpenApiDocument(): OpenAPIObject {
   });
   registry.registerPath({
     method: 'get',
+    path: '/api/market/symbols/search',
+    tags: ['Market'],
+    summary: '종목명·코드 검색(전 시장 통합)',
+    request: {
+      query: z.object({
+        keyword: z.string().min(1).max(40),
+        limit: z.coerce.number().int().min(1).max(50).default(20),
+      }),
+    },
+    responses: jsonRes(list(StockSymbol)),
+  });
+  registry.registerPath({
+    method: 'get',
     path: '/api/market/quote/{code}',
     tags: ['Market'],
     summary: '현재가 스냅샷',
@@ -128,7 +141,7 @@ export function buildOpenApiDocument(): OpenAPIObject {
     method: 'get',
     path: '/api/market/ranking/{kind}',
     tags: ['Market'],
-    summary: '순위(인기) 조회',
+    summary: '순위 조회 (인기·거래량·거래대금·등락률·시가총액)',
     request: {
       params: z.object({ kind: C.rankingKindSchema }),
       query: z.object({ market: C.rankingMarketSchema.default('all') }),

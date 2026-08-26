@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authStore } from '@/shared/lib';
@@ -65,5 +65,55 @@ describe('useWatchlist', () => {
       expect(WatchlistService.add).toHaveBeenCalledWith({ code: '000660', name: '카카오' }),
     );
     expect(WatchlistService.remove).not.toHaveBeenCalled();
+  });
+
+  /**
+   * ★ 는 "눌렀는데 반응이 없다"가 곧바로 드러나는 UI 다. 서버 왕복이 끝나기 전에 목록이
+   * 이미 바뀌어 있어야 하고, 실패하면 원래대로 되돌아가야 한다.
+   */
+  describe('낙관적 갱신', () => {
+    /** 응답을 영원히 붙잡아 둔다 — 이 동안 보이는 상태가 곧 "왕복 전" 상태다. */
+    const pending = () => new Promise<never>(() => {});
+
+    it('담으면 서버 응답을 기다리지 않고 목록에 나타난다', async () => {
+      vi.mocked(WatchlistService.add).mockReturnValue(pending());
+      const { result } = renderUseWatchlist();
+
+      act(() => result.current.toggle('000660', '카카오'));
+
+      await waitFor(() => expect(result.current.isWatched('000660')).toBe(true));
+      expect(result.current.items.find((item) => item.code === '000660')?.name).toBe('카카오');
+    });
+
+    it('빼면 서버 응답을 기다리지 않고 목록에서 사라진다', async () => {
+      vi.mocked(WatchlistService.remove).mockReturnValue(pending());
+      const { result } = renderUseWatchlist();
+      expect(result.current.isWatched('005930')).toBe(true);
+
+      act(() => result.current.toggle('005930'));
+
+      await waitFor(() => expect(result.current.isWatched('005930')).toBe(false));
+    });
+
+    it('추가가 실패하면 되돌린다 — 원래 목록은 남는다', async () => {
+      vi.mocked(WatchlistService.add).mockRejectedValue(new Error('네트워크 오류'));
+      const { result } = renderUseWatchlist();
+
+      act(() => result.current.toggle('000660'));
+
+      await waitFor(() => expect(WatchlistService.add).toHaveBeenCalled());
+      await waitFor(() => expect(result.current.isWatched('000660')).toBe(false));
+      expect(result.current.isWatched('005930')).toBe(true);
+    });
+
+    it('삭제가 실패하면 빼놨던 종목이 되살아난다', async () => {
+      vi.mocked(WatchlistService.remove).mockRejectedValue(new Error('네트워크 오류'));
+      const { result } = renderUseWatchlist();
+
+      act(() => result.current.toggle('005930'));
+
+      await waitFor(() => expect(WatchlistService.remove).toHaveBeenCalled());
+      await waitFor(() => expect(result.current.isWatched('005930')).toBe(true));
+    });
   });
 });

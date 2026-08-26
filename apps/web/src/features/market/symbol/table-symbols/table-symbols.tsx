@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import type { MarketKind } from '@stock/contracts';
 import { symbolQueries } from '@/entities/market/symbol';
+import type { SelectSymbol } from '@/shared/lib';
 import { QueryErrorBoundary } from '@/shared/ui';
 import { SymbolRows } from './components/symbol-rows';
 
 interface TableSymbolsProps {
-  onSelect?: (code: string) => void;
+  onSelect?: SelectSymbol;
 }
 
 const MARKETS: { value: MarketKind; label: string }[] = [

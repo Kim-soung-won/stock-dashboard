@@ -216,9 +216,18 @@ model SymbolCache {
   market    String
   code      String
   name      String
+  /// 전일종가(원). ka10099 `lastPrice`. 시가총액 순위의 표시 가격으로도 쓴다.
+  lastPrice Int?
+  /// 상장주식수(주). ka10099 `listCount`. 발행주식이 많아 Int 범위를 넘는다.
+  listCount BigInt?
+  /// 상장주식수 x 전일종가(원). 키움에 국내 시가총액 순위 TR 이 없어 파생해 둔다.
+  /// 여기에 저장해야 DB 가 정렬할 수 있다(전 종목을 앱으로 끌어올 수 없다).
+  marketCap BigInt?
   updatedAt DateTime @updatedAt
 
   @@id([market, code])
+  /// 시가총액 순위 조회용. 시장별로 상위 N 건만 읽는다.
+  @@index([market, marketCap])
 }
 
 /// 서비스 사용 이력(감사·분석). 전역 인터셉터가 HTTP 요청 완료마다 append-only 로 적재한다.

@@ -19,9 +19,10 @@ NestJS BFF(토큰·REST 프록시·단일 WS 세션·주문 저널·페이퍼 �
 | --- | --- | --- | --- |
 | System | `GET /api/health` | BFF 상태(키움 env·업스트림·구독 수) | `common/health.controller.ts` |
 | Market | `GET /api/market/symbols?market` | 종목 마스터 목록(SymbolCache) | `market/` |
+| Market | `GET /api/market/symbols/search?keyword,limit` | 종목명·코드 검색(전 시장, SymbolCache) | `market/` |
 | Market | `GET /api/market/quote/:code` | 현재가 스냅샷 | `market/` |
 | Market | `GET /api/market/candles/:code?interval,baseDate` | 봉(일/분봉) | `market/` |
-| Market | `GET /api/market/ranking/:kind?market` | 순위(views·volume·value·gainers·losers) | `market/` |
+| Market | `GET /api/market/ranking/:kind?market` | 순위(views·volume·value·gainers·losers·**marketCap**). marketCap 만 키움 TR 이 아니라 SymbolCache 파생값(상장주식수x전일종가) | `market/` |
 | Market | `GET /api/market/order-book/:code` | 호가창 | `market/` |
 | Account | `GET /api/account/balance` | 잔고+보유(키움 스냅샷) | `account/` |
 | Account | `GET /api/account/pending-orders?code` | 미체결 주문 | `account/` |

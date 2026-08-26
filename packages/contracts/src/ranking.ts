@@ -19,6 +19,13 @@ export const rankingKindSchema = z.enum([
   'gainers',
   /** ka10027 전일대비등락률상위 (하락) */
   'losers',
+  /**
+   * 시가총액 상위 — **키움에 국내 시가총액 순위 TR 이 없다**(미국은 usa20550).
+   * 그래서 이것만 다른 순위와 출처가 다르다: 종목 마스터(ka10099)가 주는
+   * 상장주식수 x 전일종가로 BFF 가 파생해 캐시에서 정렬한다. 전일 종가 기준값이므로
+   * 장중 순위가 실시간으로 뒤바뀌지는 않는다.
+   */
+  'marketCap',
 ]);
 export type RankingKind = z.infer<typeof rankingKindSchema>;
 
@@ -41,6 +48,11 @@ export const rankingItemSchema = z.object({
   tradeValue: z.number().nullable(),
   /** 순위 변동(+ 상승 / - 하락). views 순위에만 있다 */
   rankChange: z.number().nullable(),
+  /**
+   * 원. 상장주식수 x 전일종가로 파생한 **전일 종가 기준** 시가총액.
+   * marketCap 순위에만 채워지고 나머지 순위는 null 이다.
+   */
+  marketCap: z.number().nullable(),
 });
 export type RankingItem = z.infer<typeof rankingItemSchema>;
 

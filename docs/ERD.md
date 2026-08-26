@@ -15,6 +15,8 @@ DB 는 "키움에 없는 것"만 보관한다. 시세·잔고·예수금의 진�
   참가자별 총평가금액을 append-only 로 적재한다(라인차트 시계열). FK 없는 독립 테이블.
 - **관심 종목**(`WatchlistItem`) — 참가자별 관심 종목. 코드+이름 스냅샷만 담고 시세는 저장하지 않는다.
 - `SymbolCache` — 어느 쪽에도 속하지 않는 종목 마스터 캐시(없어도 동작).
+  종목명 검색과 **시가총액 순위**가 이 테이블을 질의한다. 시가총액은 키움에 국내 순위
+  TR 이 없어 `listCount x lastPrice` 로 파생해 저장한다 — 정렬을 DB 에 맡기기 위함이다.
 - `ServiceUsageLog` — 전역 인터셉터가 모든 HTTP 요청을 append-only 로 적재하는 사용 이력(감사·분석).
   어느 도메인도 참조하지 않는 독립 테이블이다(FK 없음).
 
@@ -119,6 +121,9 @@ erDiagram
         string   market PK "복합키 — 시장 구분이 배타적이지 않음"
         string   code PK
         string   name
+        int      lastPrice "전일종가(원)"
+        bigint   listCount "상장주식수(주)"
+        bigint   marketCap "listCount x lastPrice — 시가총액 순위 정렬용 파생값"
         datetime updatedAt
     }
 

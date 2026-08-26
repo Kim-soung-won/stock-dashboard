@@ -26,9 +26,15 @@ export const formatSignedWon = (value: number | null): string => {
   return sign + numberFormat.format(value);
 };
 
-/** 거래량처럼 큰 수를 축약한다. */
+/**
+ * 거래량·시가총액처럼 큰 수를 축약한다.
+ *
+ * 조 단위까지 올라간다 — 시가총액은 억으로 끊으면 "15025000.0억" 처럼 읽을 수 없는
+ * 숫자가 된다.
+ */
 export const formatCompact = (value: number | null): string => {
   if (value === null) return '-';
+  if (value >= 1_000_000_000_000) return (value / 1_000_000_000_000).toFixed(1) + '조';
   if (value >= 100_000_000) return (value / 100_000_000).toFixed(1) + '억';
   if (value >= 10_000) return (value / 10_000).toFixed(1) + '만';
   return numberFormat.format(value);

@@ -1,10 +1,18 @@
 /** 라우트 경로 단일 출처. 사이드바 메뉴와 route 정의가 같은 값을 쓴다. */
 export const pathKeys = {
   root: '/',
-  market: {
+  /** 통합 전 경로. 북마크가 404 로 떨어지지 않게 메인으로 리다이렉트한다. */
+  legacy: {
     dashboard: '/market/dashboard',
-    symbols: '/market/symbols',
     popular: '/market/popular',
+  },
+  market: {
+    /**
+     * 메인 화면. 실시간 시세 대시보드와 인기 종목이 하는 일이 겹쳐서 하나로 합쳤다.
+     * 좌측 상단 로고가 이 경로로 돌아온다.
+     */
+    home: '/',
+    symbols: '/market/symbols',
   },
   account: {
     balance: '/account/balance',

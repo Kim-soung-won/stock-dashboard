@@ -1,3 +1,2 @@
-export { dashboardRoute } from './dashboard';
-export { popularRoute } from './popular';
+export { homeRoute, legacyMarketRoutes } from './home';
 export { symbolsRoute } from './symbols';

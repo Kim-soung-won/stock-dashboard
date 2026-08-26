@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { balanceQueries } from '@/entities/account/balance';
+import { useSymbolPicker } from '@/entities/market/symbol';
 import { healthQueries } from '@/entities/system/health';
 import {
   ORDER_TYPE_LABEL,
@@ -13,6 +14,7 @@ import {
 } from '@/entities/trading/order';
 import type { OrderFormValues } from '@/entities/trading/order';
 import { formatWon } from '@/shared/lib';
+import { SymbolSearchInput } from '@/shared/ui';
 
 const INITIAL: OrderFormValues = {
   code: '',
@@ -24,6 +26,9 @@ const INITIAL: OrderFormValues = {
 
 /**
  * 주문 폼.
+ *
+ * 종목은 **이름으로 검색해 고른다**(코드를 그대로 붙여넣어도 된다) — 코드를 잘못 외워
+ * 다른 종목에 주문을 내는 것이 가장 비싼 실수다.
  *
  * 안전장치를 UI 에 박아둔다:
  *  1. 실전(real) 환경이면 확인 체크박스 없이는 전송 버튼이 활성되지 않는다.
@@ -38,9 +43,14 @@ export const FormOrder = () => {
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
+  const picker = useSymbolPicker();
+
+  // 종목코드는 폼 상태가 아니라 picker 가 확정하는 파생값이다(effect 로 되쓰지 않는다).
+  const formValues: OrderFormValues = { ...values, code: picker.code ?? '' };
+
   const { data: health } = useQuery(healthQueries.status());
   const { data: orderability } = useQuery(
-    orderQueries.orderability(values.code, values.orderType === 'limit' ? values.price : 0),
+    orderQueries.orderability(formValues.code, values.orderType === 'limit' ? values.price : 0),
   );
   const placeOrder = usePlaceOrder();
 
@@ -52,11 +62,11 @@ export const FormOrder = () => {
   };
 
   const submit = () => {
-    const message = validateOrderForm(values);
+    const message = validateOrderForm(formValues);
     setValidationError(message);
     if (message || !health) return;
 
-    placeOrder.mutate(toPlaceOrderRequest(values, health.kiwoomEnv, idempotencyKey), {
+    placeOrder.mutate(toPlaceOrderRequest(formValues, health.kiwoomEnv, idempotencyKey), {
       onSettled: () => {
         // 접수 이후 잔고·미체결·저널이 모두 변한다. 조합은 이 계층에서 한다.
         void queryClient.invalidateQueries({ queryKey: balanceQueries.all() });
@@ -66,6 +76,7 @@ export const FormOrder = () => {
         // 다음 주문은 새 멱등키로. 같은 키를 재사용하면 서버가 재전송을 막는다.
         setIdempotencyKey(createIdempotencyKey());
         setConfirmedReal(false);
+        picker.reset();
       },
     });
   };
@@ -83,13 +94,18 @@ export const FormOrder = () => {
       </div>
 
       <label className="field">
-        <span>종목코드</span>
-        <input
-          value={values.code}
-          onChange={(event) => update('code', event.target.value.trim())}
-          placeholder="005930"
-          maxLength={12}
+        <span>종목</span>
+        <SymbolSearchInput
+          value={picker.query}
+          onChange={picker.onChange}
+          suggestions={picker.suggestions}
+          isSearching={picker.isSearching}
+          onPick={picker.onPick}
+          placeholder="종목명 또는 코드 (예: 삼성전자)"
         />
+        <span className="field__hint">
+          {picker.code ? '선택: ' + picker.code : '이름으로 검색해 종목을 고르세요'}
+        </span>
       </label>
 
       <div className="field-row">
@@ -175,7 +191,7 @@ export const FormOrder = () => {
         </p>
       ) : null}
 
-      <button type="submit" disabled={placeOrder.isPending || blockedByRealGuard}>
+      <button type="submit" disabled={placeOrder.isPending || blockedByRealGuard || !picker.code}>
         {placeOrder.isPending ? '전송 중…' : SIDE_LABEL[values.side] + ' 주문'}
       </button>
     </form>

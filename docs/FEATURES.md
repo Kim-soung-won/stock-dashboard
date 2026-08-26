@@ -14,10 +14,13 @@
 
 | 기능 | 상태 | 엔드포인트 · 화면 | 스펙 |
 | --- | --- | --- | --- |
-| 실시간 시세 대시보드 | ✅ | `GET /api/market/quote·candles·order-book` · `/market/dashboard` | `market.mapper`·`quote.libs`·`chart.libs` |
+| 메인 화면 (시세+순위+차트+주문) | ✅ | `GET /api/market/quote·candles·ranking` · `/` | `market.mapper`·`quote.libs`·`chart.libs` |
 | 종목 탐색 | 🟢 | `GET /api/market/symbols` · `/market/symbols` | — |
-| 인기·순위 | ✅ | `GET /api/market/ranking/:kind` · `/market/popular` | `ranking.mapper` |
-| 캔들 차트 | ✅ | (candles) · dashboard/symbols | `chart.libs` |
+| 종목명 검색(전 시장 자동완성) | ✅ | `GET /api/market/symbols/search` · 관심종목·주문·매매 입력 | `market.mapper`(관련도)·`symbol.libs` |
+| 인기·순위 | ✅ | `GET /api/market/ranking/:kind` · 메인 화면 | `ranking.mapper` |
+| **시가총액 순위** | ⚠️✅ | 같은 엔드포인트(`kind=marketCap`) · 메인 화면 | `market.mapper`(`marketCapOf`·`toMarketCapRanking`) |
+| 캔들 차트 (종목명 표기) | ✅ | (candles) · 메인/종목 탐색/관심종목 | `chart.libs`·`selected-symbol` |
+| 선택 종목 즉시 주문 | ✅ | `POST /api/competition/trade` · 차트 옆 주문 창 | `symbol.model`(프리필) |
 | 실시간 체결 스트림 | ✅ | `WS /ws` (tick·orderBook) | `realtime.mapper` |
 
 ## 경쟁 — 모의투자 (Competition)
@@ -47,7 +50,8 @@
 | 기능 | 상태 | 엔드포인트 · 화면 | 스펙 |
 | --- | --- | --- | --- |
 | 관심종목 CRUD (참가자별) | ✅ | `GET/POST/DELETE /api/watchlist` · `/watchlist` | `watchlist.service`·`watchlist.model` |
-| ★ 토글 (시세·순위 표) | ✅ | 목록/순위 행 | `watchlist.model` |
+| 종목명으로 추가 | ✅ | `/watchlist`·`/market/dashboard` 의 추가 폼 | `symbol.libs`·`symbol-search-input` |
+| ★ 토글 (시세·순위 표, 낙관적 갱신) | ✅ | 목록/순위 행 | `watchlist.model` |
 
 ## 프로필 (SNS)
 
@@ -55,6 +59,14 @@
 | --- | --- | --- | --- |
 | 공개 프로필 조회 | ✅ | `GET /api/participants/:id/profile` · `/profile/:id` | `profile.service` |
 | 내 프로필 편집 (bio·아바타) | ✅ | `PATCH /api/profile` · `/profile/me` | `profile.service` |
+
+## 네비게이션
+
+| 기능 | 상태 | 엔드포인트 · 화면 | 스펙 |
+| --- | --- | --- | --- |
+| 로고 → 메인 복귀 | ✅ | 헤더 좌측 상단 | — |
+| 상단 네비 (탐색 화면) | ✅ | 리더보드·종목 탐색·관심종목 | `menu-items` |
+| 프로필 드롭다운 (내 화면) | ✅ | 내 포트폴리오·내 프로필·잔고·주문이력·로그아웃 | `user-menu.spec.tsx` |
 
 ## 횡단 (Cross-cutting)
 
@@ -70,6 +82,10 @@
 - **리더보드 추이 라인차트**: 총평가금액 스냅샷을 도입 시점부터 주기 적재(기본 5분,
   `SNAPSHOT_INTERVAL_MS`)한다. **과거는 소급 복원 불가**(과거 시세를 저장하지 않음).
   스냅샷 2점 미만이면 곡선 대신 안내 문구를 띄운다.
+- **시가총액 순위**: 키움에 국내 시가총액 순위 TR 이 **없다**(미국만 `usa20550`). 그래서
+  종목 마스터(ka10099)의 `상장주식수 x 전일종가`로 BFF 가 파생해 `SymbolCache` 에 저장하고
+  DB 가 정렬한다. **전일 종가 기준**이라 장중에 순위가 움직이지 않고, 전일대비·등락률은
+  비어 있다(상위 30종목의 현재가만 실시간 틱이 채운다). ETF 는 제외한다.
 - **프로필 공개 범위**: 보유·체결·관심종목이 무인증으로 **누구에게나** 공개된다.
   비공개 토글이 필요하면 `Participant`에 공개설정 필드를 추가해 `ProfileService`에서 거른다.
 - **사용 이력 `X-User-Id`**: 클라이언트가 보내는 디바이스 id 라 **위조 가능**(분석용 보조값).

@@ -1,4 +1,11 @@
-import type { Candle, MarketKind, OrderBook, Quote, StockSymbol } from '@stock/contracts';
+import type {
+  Candle,
+  MarketKind,
+  OrderBook,
+  Quote,
+  RankingItem,
+  StockSymbol,
+} from '@stock/contracts';
 import {
   applyUnit,
   directionOfSignCode,
@@ -30,18 +37,123 @@ const nowIso = () => new Date().toISOString();
  * 목록의 의미는 "그 mrkt_tp 로 조회한 결과"이므로 요청값을 그대로 유지한다.
  */
 export const toSymbols = (
-  rows: { code?: string; name?: string; marketName?: string }[],
+  rows: SymbolMasterRow[],
   market: MarketKind,
 ): StockSymbol[] =>
   rows
-    .filter((row): row is { code: string; name: string; marketName?: string } =>
+    .filter((row): row is SymbolMasterRow & { code: string; name: string } =>
       Boolean(row.code && row.name),
     )
     .map((row) => ({
       code: normalizeStockCode(row.code),
       name: row.name.trim(),
       market,
+      marketCap: marketCapOf(row),
     }));
+
+/** ka10099 응답 행. 이 TR 만 예외적으로 camelCase 다. */
+export interface SymbolMasterRow {
+  code?: string;
+  name?: string;
+  marketName?: string;
+  /** 상장주식수. 0-padding 된 부호 포함 16자리 */
+  listCount?: string;
+  /** 전일종가(원). 0-padding 된 부호 포함 8자리 */
+  lastPrice?: string;
+}
+
+/**
+ * 시가총액 = 상장주식수 x 전일종가 (원).
+ *
+ * 키움에 국내 시가총액 순위 TR 이 없어서(미국은 usa20550) 마스터의 두 필드로 파생한다.
+ * **전일 종가 기준**이라 장중에 값이 움직이지 않는다 — 순위를 매기는 용도로는 충분하고,
+ * 화면에는 기준을 함께 표기한다.
+ *
+ * 두 값 모두 0-padding 문자열이고 없을 수도 있다(신규 상장·ETF 일부). 한쪽이라도
+ * 비면 0 이 아니라 null 이다 — "시가총액 0원"과 "모른다"는 다르다.
+ */
+export const marketCapOf = (row: Pick<SymbolMasterRow, 'listCount' | 'lastPrice'>): number | null => {
+  const shares = parseAmount(row.listCount);
+  const close = parseAmount(row.lastPrice);
+  if (shares === null || close === null || shares === 0 || close === 0) return null;
+  return shares * close;
+};
+
+/**
+ * 시가총액 순위 — 다른 순위와 달리 키움 TR 이 아니라 **우리 종목 캐시**에서 만든다.
+ *
+ * 가격은 전일종가다(현재가 TR 이 아니다). 그래서 전일대비·등락률은 null 로 두고,
+ * 상위 종목의 현재가는 프론트가 실시간 틱으로 덮는다 — views 순위와 같은 취급이다.
+ */
+export const toMarketCapRanking = (
+  rows: { code: string; name: string; lastPrice: number | null; marketCap: number | null }[],
+): RankingItem[] =>
+  rows.map((row, index) => ({
+    rank: index + 1,
+    code: row.code,
+    name: row.name,
+    price: row.lastPrice,
+    direction: 'flat' as const,
+    change: null,
+    changeRate: null,
+    volume: null,
+    tradeValue: null,
+    rankChange: null,
+    marketCap: row.marketCap,
+  }));
+
+/**
+ * 종목 검색 결과 관련도 정렬 (순수).
+ *
+ * 이름으로 종목을 고르는 UX 에서는 "삼성" 을 쳤을 때 삼성전자가 맨 위여야 한다. DB 의
+ * 부분일치(LIKE)는 순서를 보장하지 않으므로 관련도를 여기서 매긴다 — 완전일치 →
+ * 앞부분 일치 → 중간 포함 순이고, 코드 일치를 이름 일치보다 앞에 둔다(코드를 그대로
+ * 붙여넣은 사용자는 그 종목을 이미 특정한 것이다).
+ *
+ * 같은 코드가 여러 시장 목록에 나올 수 있어(코스피 목록에 KOSPI 상장 ETF 가 섞인다)
+ * 코드 기준으로 한 건만 남긴다 — 관련도가 가장 높은 쪽을 남긴다.
+ */
+export const rankSymbolMatches = (
+  symbols: StockSymbol[],
+  keyword: string,
+  limit: number,
+): StockSymbol[] => {
+  const needle = keyword.trim().toLowerCase();
+  if (!needle) return [];
+
+  const best = new Map<string, { symbol: StockSymbol; score: number }>();
+  for (const symbol of symbols) {
+    const score = matchScore(symbol, needle);
+    if (score === null) continue;
+    const previous = best.get(symbol.code);
+    if (!previous || score < previous.score) best.set(symbol.code, { symbol, score });
+  }
+
+  return [...best.values()]
+    .sort(
+      (a, b) =>
+        a.score - b.score ||
+        // 같은 관련도면 짧은 이름이 더 정확한 후보다("삼성전자" < "삼성전자우").
+        a.symbol.name.length - b.symbol.name.length ||
+        a.symbol.name.localeCompare(b.symbol.name, 'ko-KR') ||
+        a.symbol.code.localeCompare(b.symbol.code),
+    )
+    .slice(0, Math.max(0, limit))
+    .map((entry) => entry.symbol);
+};
+
+/** 관련도 점수(낮을수록 먼저). 어디에도 걸리지 않으면 null = 검색 결과 아님. */
+const matchScore = (symbol: StockSymbol, needle: string): number | null => {
+  const code = symbol.code.toLowerCase();
+  const name = symbol.name.toLowerCase();
+  if (code === needle) return 0;
+  if (name === needle) return 1;
+  if (code.startsWith(needle)) return 2;
+  if (name.startsWith(needle)) return 3;
+  if (code.includes(needle)) return 4;
+  if (name.includes(needle)) return 5;
+  return null;
+};
 
 /** ka10001 주식기본정보요청 → 현재가 스냅샷 */
 export const toQuote = (row: Row): Quote => ({

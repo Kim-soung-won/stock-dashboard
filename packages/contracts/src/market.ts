@@ -19,6 +19,12 @@ export const stockSymbolSchema = z.object({
   code: z.string(),
   name: z.string(),
   market: marketKindSchema,
+  /**
+   * 원. 상장주식수 x 전일종가로 파생한 **전일 종가 기준** 시가총액.
+   * 키움에 국내 시가총액 TR 이 없어 마스터(ka10099)의 두 필드로 계산한다.
+   * 값이 오지 않는 종목(신규 상장 등)은 null.
+   */
+  marketCap: z.number().nullable(),
 });
 export type StockSymbol = z.infer<typeof stockSymbolSchema>;
 

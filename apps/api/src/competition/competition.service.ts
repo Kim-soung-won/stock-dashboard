@@ -182,22 +182,42 @@ export class CompetitionService {
     };
   }
 
-  /** (참가자, 시즌) 포트폴리오를 보장한다 — 없으면 시드머니로 생성. */
+  /**
+   * (참가자, 시즌) 포트폴리오를 보장한다 — 없으면 시드머니로 생성.
+   *
+   * "읽어보고 없으면 만든다"는 **경쟁 상태**다. 신규 참가자가 로그인한 직후에는 포트폴리오·
+   * 체결이력·리더보드 조회가 한꺼번에 들어오는데, 둘 이상이 동시에 "없다"고 판정하면 양쪽이
+   * create 를 쏘고 늦은 쪽이 유니크 위반(P2002)으로 500 을 받는다 — 첫 로그인이 실패하는
+   * 가장 눈에 띄는 자리다. 그래서 위반을 **정상 경로로** 취급한다: 남이 먼저 만들었다는
+   * 뜻이므로 그 행을 읽어서 돌려준다.
+   *
+   * 재조회하고 끝내는 이유(재시도가 아닌 이유): 유니크 제약이 "시즌당 1개"를 보장하므로
+   * 위반은 곧 "이미 있다"와 동의어다. 순위 재계산은 **만든 쪽만** 부른다(이긴 쪽이 이미 불렀다).
+   */
   private async ensurePortfolio(
     participantId: string,
     seasonId: string,
     startingCash: number,
   ): Promise<PortfolioRow> {
-    const existing = await this.prisma.portfolio.findUnique({
-      where: { participantId_seasonId: { participantId, seasonId } },
-    });
+    const key = { participantId_seasonId: { participantId, seasonId } };
+    const existing = await this.prisma.portfolio.findUnique({ where: key });
     if (existing) return existing;
-    const created = await this.prisma.portfolio.create({
-      data: { participantId, seasonId, startingCash, cash: startingCash },
-    });
-    // 새 참가자가 리더보드에 즉시 나타나도록 순위를 다시 밀어준다(틱/체결을 기다리지 않는다).
-    await this.leaderboard.onPortfolioChanged();
-    return created;
+
+    try {
+      const created = await this.prisma.portfolio.create({
+        data: { participantId, seasonId, startingCash, cash: startingCash },
+      });
+      // 새 참가자가 리더보드에 즉시 나타나도록 순위를 다시 밀어준다(틱/체결을 기다리지 않는다).
+      await this.leaderboard.onPortfolioChanged();
+      return created;
+    } catch (error) {
+      if (!isUniqueViolation(error)) throw error;
+      const raced = await this.prisma.portfolio.findUnique({ where: key });
+      // 위반이 났는데 행이 없으면 우리가 짚은 제약이 아니다 — 삼키지 않고 올린다.
+      if (!raced) throw error;
+      this.logger.debug(`포트폴리오 동시 생성 — 먼저 만들어진 것을 쓴다: ${participantId}`);
+      return raced;
+    }
   }
 
   private async composePortfolio(
@@ -232,3 +252,12 @@ export class CompetitionService {
     return next;
   }
 }
+
+/**
+ * Prisma 유니크 제약 위반(P2002) 판정.
+ *
+ * 에러 클래스를 import 하지 않고 코드만 본다 — 서비스 단위 테스트가 Prisma 런타임 없이
+ * `{ code: 'P2002' }` 만으로 경쟁 상태를 재현할 수 있게 하려는 것이다.
+ */
+const isUniqueViolation = (error: unknown): boolean =>
+  typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'P2002';

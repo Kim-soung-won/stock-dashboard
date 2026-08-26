@@ -7,11 +7,12 @@ import {
   RANKING_META,
   rankingQueries,
 } from '@/entities/market/ranking';
+import type { SelectSymbol } from '@/shared/lib';
 import { QueryErrorBoundary } from '@/shared/ui';
 import { RankingRows } from './components/ranking-rows';
 
 interface TableRankingProps {
-  onSelect?: (code: string) => void;
+  onSelect?: SelectSymbol;
 }
 
 /**
@@ -47,8 +48,8 @@ export const TableRanking = ({ onSelect }: TableRankingProps) => {
               key={value}
               type="button"
               aria-pressed={market === value}
-              // 인기(ka00198)는 시장 구분 파라미터가 없는 TR 이다.
-              disabled={kind === 'views'}
+              // 시장 구분 파라미터가 없는 순위(인기)에서는 탭을 잠근다.
+              disabled={meta.ignoresMarket}
               onClick={() => setMarket(value)}
             >
               {RANKING_MARKET_LABEL[value]}

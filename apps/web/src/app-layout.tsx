@@ -6,6 +6,7 @@ import { portfolioQueries } from '@/entities/competition/portfolio';
 import { healthQueries } from '@/entities/system/health';
 import { formatWon, menuItems, pathKeys, useTheme } from '@/shared/lib';
 import { DebugPanel, ModeToggle, ThemeToggle } from '@/shared/ui';
+import { UserMenu } from './user-menu';
 
 /**
  * 앱 셸 — STOCK ARCADE 상단 헤더 + 본문.
@@ -13,6 +14,10 @@ import { DebugPanel, ModeToggle, ThemeToggle } from '@/shared/ui';
  * claude.ai/design "Stock Arcade Dashboard" 를 이식한 스킨. 아케이드 게임기처럼
  * 헤더에 SCORE(내 평가금액) / HI-SCORE(리더보드 1위)를 상시 띄워, 어느 화면에 있든
  * 지금 내 순위·환경(MOCK/REAL)이 보이게 한다. 실전/모의 배지는 절대 눈에 덜 띄게 하지 않는다.
+ *
+ * 네비는 두 갈래다: 상단에 탐색 화면(리더보드·종목 탐색·관심종목), 우측 프로필
+ * 드롭다운에 내 것(포트폴리오·프로필·잔고·주문이력). 로고는 메인 화면으로 돌아가는
+ * 버튼이다 — 메인(시세+순위)은 메뉴 항목이 아니라 로고로 간다.
  */
 export const AppLayout = () => {
   const navigate = useNavigate();
@@ -40,8 +45,13 @@ export const AppLayout = () => {
     <div className="shell">
       <header className="shell__header">
         <div className="shell__brand">
-          <span className="shell__brand-stock">STOCK</span>
-          <span className="shell__brand-arcade">{theme === 'terminal' ? 'TERMINAL' : 'ARCADE'}</span>
+          {/* 로고 = 메인(시세·순위) 화면으로 돌아가는 버튼. */}
+          <Link to={pathKeys.market.home} className="shell__brand-link" title="메인 화면">
+            <span className="shell__brand-stock">STOCK</span>
+            <span className="shell__brand-arcade">
+              {theme === 'terminal' ? 'TERMINAL' : 'ARCADE'}
+            </span>
+          </Link>
           <span className="shell__brand-ver">v0.1</span>
           <span className={'env-badge ' + (isReal ? 'env-badge--real' : 'env-badge--mock')}>
             {isReal ? 'REAL' : 'MOCK'}
@@ -74,17 +84,7 @@ export const AppLayout = () => {
           <ThemeToggle />
           <ModeToggle />
 
-          {participant ? (
-            <div className="shell__user">
-              <Link to={pathKeys.profile.me} className="shell__user-link" title="내 프로필">
-                <span className="shell__user-avatar">{participant.avatarEmoji ?? '👤'}</span>
-                <span className="shell__user-name">{participant.nickname}</span>
-              </Link>
-              <button type="button" className="shell__logout" onClick={onLogout}>
-                로그아웃
-              </button>
-            </div>
-          ) : null}
+          {participant ? <UserMenu participant={participant} onLogout={onLogout} /> : null}
         </div>
       </header>
 

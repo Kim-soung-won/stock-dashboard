@@ -38,7 +38,9 @@ describe('formatSignedWon', () => {
 });
 
 describe('formatCompact', () => {
-  it('억/만 단위로 축약하고 그 아래는 천단위 구분한다', () => {
+  it('조/억/만 단위로 축약하고 그 아래는 천단위 구분한다', () => {
+    // 시가총액은 억으로 끊으면 읽을 수 없다(1502조 = 15025000억).
+    expect(formatCompact(1_502_500_000_000_000)).toBe('1502.5조');
     expect(formatCompact(150_000_000)).toBe('1.5억');
     expect(formatCompact(15_000)).toBe('1.5만');
     expect(formatCompact(5_000)).toBe('5,000');

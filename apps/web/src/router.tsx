@@ -1,8 +1,8 @@
-import { Navigate, createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
 import { loginRoute } from '@/pages/auth';
 import { balanceRoute } from '@/pages/account';
 import { leaderboardRoute, portfolioRoute } from '@/pages/competition';
-import { dashboardRoute, popularRoute, symbolsRoute } from '@/pages/market';
+import { homeRoute, legacyMarketRoutes, symbolsRoute } from '@/pages/market';
 import { orderRoute } from '@/pages/trading';
 import { watchlistRoute } from '@/pages/watchlist';
 import { profileRoute } from '@/pages/profile';
@@ -26,11 +26,11 @@ export const router = createBrowserRouter([
     // loader 예외·없는 경로는 컴포넌트 바운더리가 아니라 여기로 온다.
     errorElement: <RouteErrorBoundary />,
     children: [
-      { index: true, element: <Navigate to={pathKeys.competition.leaderboard} replace /> },
+      // 메인 = 실시간 시세 + 순위 + 차트 + 주문(통합 화면). 로고가 여기로 돌아온다.
+      homeRoute,
+      ...legacyMarketRoutes,
       leaderboardRoute,
       portfolioRoute,
-      dashboardRoute,
-      popularRoute,
       symbolsRoute,
       watchlistRoute,
       profileRoute,

@@ -6,5 +6,7 @@ export { StaleOverlay } from './stale-overlay';
 export { ModeToggle } from './mode-toggle';
 export { StarButton } from './star-button';
 export { StatusDot } from './status-dot';
+export { SymbolSearchInput } from './symbol-search-input';
+export type { SymbolOption } from './symbol-search-input';
 export { ThemeToggle } from './theme-toggle';
 export { ValueText } from './value-text';

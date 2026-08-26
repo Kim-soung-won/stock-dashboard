@@ -45,6 +45,7 @@ const toViewsItem = (row: Row, index: number): RankingItem => ({
   tradeValue: null,
   // 순위 변동은 값과 부호가 분리돼 있고, 변동 없으면 빈 문자열이 온다.
   rankChange: signedRankChange(row['rank_chg'], row['rank_chg_sign']),
+  marketCap: null,
 });
 
 const signedRankChange = (value: string | undefined, sign: string | undefined): number | null => {
@@ -65,6 +66,8 @@ const toVolumeItem = (row: Row, index: number): RankingItem => ({
   volume: parseCount(row['trde_qty']),
   tradeValue: null,
   rankChange: null,
+  // 시가총액은 마스터에서 파생하는 값이라 키움 순위 TR 응답에는 없다.
+  marketCap: null,
 });
 
 /** ka10032 거래대금상위 */
@@ -84,6 +87,7 @@ const toValueItem = (row: Row, index: number): RankingItem => {
     tradeValue: applyUnit(parseAmount(row['trde_prica']), 'millionWon'),
     // 순위가 올랐으면 양수(전일순위 - 현재순위).
     rankChange: previous === null || previous === 0 ? null : previous - now,
+    marketCap: null,
   };
 };
 
@@ -99,9 +103,14 @@ const toFluctuationItem = (row: Row, index: number): RankingItem => ({
   volume: null,
   tradeValue: null,
   rankChange: null,
+  // 시가총액은 마스터에서 파생하는 값이라 키움 순위 TR 응답에는 없다.
+  marketCap: null,
 });
 
-const MAPPER: Readonly<Record<RankingKind, (row: Row, index: number) => RankingItem>> = {
+/** 시가총액 순위는 키움 TR 이 아니라 종목 캐시에서 만든다(market.mapper 의 toMarketCapRanking). */
+export type TrRankingKind = Exclude<RankingKind, 'marketCap'>;
+
+const MAPPER: Readonly<Record<TrRankingKind, (row: Row, index: number) => RankingItem>> = {
   views: toViewsItem,
   volume: toVolumeItem,
   value: toValueItem,
@@ -109,5 +118,5 @@ const MAPPER: Readonly<Record<RankingKind, (row: Row, index: number) => RankingI
   losers: toFluctuationItem,
 };
 
-export const toRankingItems = (kind: RankingKind, rows: Row[]): RankingItem[] =>
+export const toRankingItems = (kind: TrRankingKind, rows: Row[]): RankingItem[] =>
   rows.map((row, index) => MAPPER[kind](row, index)).filter((item) => item.code !== '');

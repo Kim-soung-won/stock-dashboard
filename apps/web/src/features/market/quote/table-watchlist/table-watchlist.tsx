@@ -1,11 +1,12 @@
 import { useQueries } from '@tanstack/react-query';
 import { mergeTick, quoteQueries, useTickStream } from '@/entities/market/quote';
 import { formatCompact, formatRate, formatSignedWon, formatWon } from '@/shared/lib';
+import type { SelectSymbol } from '@/shared/lib';
 import { ValueText } from '@/shared/ui';
 
 interface TableWatchlistProps {
   codes: string[];
-  onSelect?: (code: string) => void;
+  onSelect?: SelectSymbol;
 }
 
 /**
@@ -49,7 +50,8 @@ export const TableWatchlist = ({ codes, onSelect }: TableWatchlistProps) => {
         {rows.map(({ code, quote }) => (
           <tr
             key={code}
-            onClick={() => onSelect?.(code)}
+            // 스냅샷에서 이름을 얻는다 — 관심종목은 코드만으로 담을 수도 있다.
+            onClick={() => onSelect?.({ code, name: quote?.name ?? null })}
             className={onSelect ? 'grid__row--clickable' : undefined}
           >
             <td>

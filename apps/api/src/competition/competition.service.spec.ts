@@ -175,3 +175,107 @@ describe('CompetitionService.trade — 가드', () => {
     expect(market.getQuote).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * 신규 참가자의 **첫 로그인**은 포트폴리오·체결이력·리더보드 조회가 한꺼번에 들어오는
+ * 자리다. 여기서 "읽어보고 없으면 만든다"가 겹치면 늦은 쪽이 유니크 위반으로 500 을
+ * 받는다 — 그 상황에서도 조회가 성공해야 한다는 계약을 고정한다.
+ */
+describe('CompetitionService.getPortfolio — 포트폴리오 최초 생성', () => {
+  const portfolioRow = {
+    id: 'pf1',
+    participantId: 'p1',
+    seasonId: 's1',
+    startingCash: 1_000_000,
+    cash: 1_000_000,
+  };
+
+  /** findUnique 가 순서대로 돌려줄 값과 create 의 동작을 지정해 경쟁 상태를 재현한다. */
+  const makeBootstrapCtx = (opts: {
+    findUniqueSequence: unknown[];
+    create: () => Promise<unknown>;
+  }) => {
+    const findUnique = vi.fn();
+    opts.findUniqueSequence.forEach((value) => findUnique.mockResolvedValueOnce(value));
+    const create = vi.fn(opts.create);
+    const prisma = {
+      portfolio: { findUnique, create },
+      holding: { findMany: vi.fn().mockResolvedValue([]) },
+    } as unknown as PrismaService;
+    const season = {
+      getActiveSeasonRow: vi.fn().mockResolvedValue(seasonRow),
+      assertTradable: vi.fn(),
+    } as unknown as SeasonService;
+    const leaderboard = {
+      onPortfolioChanged: vi.fn().mockResolvedValue(undefined),
+    } as unknown as LeaderboardService;
+    const market = { getQuote: vi.fn() } as unknown as MarketService;
+    const pricebook = { getPrice: vi.fn().mockReturnValue(null) } as unknown as PricebookService;
+    return {
+      create,
+      findUnique,
+      leaderboard,
+      service: new CompetitionService(prisma, market, season, pricebook, leaderboard),
+    };
+  };
+
+  /** 유니크 위반은 Prisma 런타임 없이 코드만으로 재현한다. */
+  const uniqueViolation = Object.assign(new Error('Unique constraint failed'), { code: 'P2002' });
+
+  it('없으면 시드머니로 만들고 순위를 다시 밀어준다', async () => {
+    const ctx = makeBootstrapCtx({
+      findUniqueSequence: [null],
+      create: () => Promise.resolve(portfolioRow),
+    });
+
+    const result = await ctx.service.getPortfolio(participant);
+
+    expect(ctx.create).toHaveBeenCalledWith({
+      data: { participantId: 'p1', seasonId: 's1', startingCash: 1_000_000, cash: 1_000_000 },
+    });
+    expect(ctx.leaderboard.onPortfolioChanged).toHaveBeenCalledTimes(1);
+    expect(result.cash).toBe(1_000_000);
+  });
+
+  it('동시 요청이 먼저 만들었으면(P2002) 실패하지 않고 그 포트폴리오를 쓴다', async () => {
+    const raced = { ...portfolioRow, cash: 900_000 };
+    const ctx = makeBootstrapCtx({
+      findUniqueSequence: [null, raced],
+      create: () => Promise.reject(uniqueViolation),
+    });
+
+    const result = await ctx.service.getPortfolio(participant);
+
+    // 먼저 만들어진 쪽의 현금이 보여야 한다 — 시드머니로 되돌리면 돈을 지운다.
+    expect(result.cash).toBe(900_000);
+  });
+
+  it('경쟁에서 진 쪽은 순위를 다시 밀지 않는다(이긴 쪽이 이미 밀었다)', async () => {
+    const ctx = makeBootstrapCtx({
+      findUniqueSequence: [null, portfolioRow],
+      create: () => Promise.reject(uniqueViolation),
+    });
+
+    await ctx.service.getPortfolio(participant);
+
+    expect(ctx.leaderboard.onPortfolioChanged).not.toHaveBeenCalled();
+  });
+
+  it('유니크 위반이 아닌 에러는 삼키지 않는다', async () => {
+    const ctx = makeBootstrapCtx({
+      findUniqueSequence: [null],
+      create: () => Promise.reject(new Error('연결 끊김')),
+    });
+
+    await expect(ctx.service.getPortfolio(participant)).rejects.toThrow('연결 끊김');
+  });
+
+  it('위반이 났는데 행도 없으면 그대로 올린다(다른 제약을 삼키지 않는다)', async () => {
+    const ctx = makeBootstrapCtx({
+      findUniqueSequence: [null, null],
+      create: () => Promise.reject(uniqueViolation),
+    });
+
+    await expect(ctx.service.getPortfolio(participant)).rejects.toThrow('Unique constraint failed');
+  });
+});

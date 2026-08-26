@@ -1,6 +1,10 @@
+import type { MarketKind } from '@stock/contracts';
 import { describe, expect, it } from 'vitest';
 import {
+  marketCapOf,
+  rankSymbolMatches,
   toDailyCandles,
+  toMarketCapRanking,
   toOrderBook,
   toQuote,
   toSymbols,
@@ -97,6 +101,133 @@ describe('toSymbols', () => {
       ],
       'kospi',
     );
-    expect(symbols).toEqual([{ code: '005930', name: '삼성전자', market: 'kospi' }]);
+    expect(symbols).toEqual([
+      { code: '005930', name: '삼성전자', market: 'kospi', marketCap: null },
+    ]);
+  });
+
+  it('상장주식수와 전일종가가 오면 시가총액을 파생한다', () => {
+    const [symbol] = toSymbols(
+      [{ code: 'A005930', name: '삼성전자', listCount: '0000000000000100', lastPrice: '00070000' }],
+      'kospi',
+    );
+    expect(symbol?.marketCap).toBe(7_000_000);
+  });
+});
+
+/**
+ * 시가총액은 키움에 국내 순위 TR 이 없어 마스터에서 파생한다. 값이 없을 때 0 으로
+ * 떨어지면 "시가총액 0원" 종목이 순위 맨 아래에 줄줄이 생긴다 — null 이어야 한다.
+ */
+describe('marketCapOf', () => {
+  it('상장주식수 x 전일종가를 원 단위로 계산한다', () => {
+    expect(marketCapOf({ listCount: '0000000000001000', lastPrice: '00050000' })).toBe(50_000_000);
+  });
+
+  it('상장주식수가 없으면 null 이다', () => {
+    expect(marketCapOf({ lastPrice: '00050000' })).toBeNull();
+  });
+
+  it('전일종가가 없으면 null 이다', () => {
+    expect(marketCapOf({ listCount: '0000000000001000' })).toBeNull();
+  });
+
+  it('어느 한쪽이 0 이면 null 이다 — 0원이 아니라 모르는 값이다', () => {
+    expect(marketCapOf({ listCount: '0000000000000000', lastPrice: '00050000' })).toBeNull();
+  });
+});
+
+/**
+ * 시가총액 순위는 캐시에서 만든다. 가격이 **전일종가**라는 사실을 계약으로 고정한다 —
+ * 전일대비·등락률을 0 으로 채우면 화면이 "보합"이라고 거짓말을 한다.
+ */
+describe('toMarketCapRanking', () => {
+  const rows = [
+    { code: '005930', name: '삼성전자', lastPrice: 70_000, marketCap: 400_000_000 },
+    { code: '000660', name: 'SK하이닉스', lastPrice: 200_000, marketCap: 150_000_000 },
+  ];
+
+  it('받은 순서대로 1위부터 순위를 매긴다(정렬은 DB 가 한다)', () => {
+    expect(toMarketCapRanking(rows).map((item) => item.rank)).toEqual([1, 2]);
+  });
+
+  it('가격은 전일종가이고 전일대비·등락률은 채우지 않는다', () => {
+    const [first] = toMarketCapRanking(rows);
+    expect(first?.price).toBe(70_000);
+    expect(first?.change).toBeNull();
+    expect(first?.changeRate).toBeNull();
+    expect(first?.direction).toBe('flat');
+  });
+
+  it('시가총액을 그대로 싣는다', () => {
+    expect(toMarketCapRanking(rows)[0]?.marketCap).toBe(400_000_000);
+  });
+});
+
+/**
+ * 이름으로 종목을 고르는 UX 의 계약: 사용자가 친 글자에 **가장 가까운 종목이 위**에
+ * 오고, 같은 종목이 두 줄로 보이지 않는다.
+ */
+describe('rankSymbolMatches', () => {
+  const symbol = (code: string, name: string, market: MarketKind = 'kospi') => ({
+    code,
+    name,
+    market,
+    marketCap: null,
+  });
+
+  it('이름 앞부분이 일치하는 종목을 중간에 포함된 종목보다 먼저 준다', () => {
+    const result = rankSymbolMatches(
+      [symbol('001', '대한삼성'), symbol('002', '삼성전자')],
+      '삼성',
+      10,
+    );
+    expect(result.map((item) => item.name)).toEqual(['삼성전자', '대한삼성']);
+  });
+
+  it('코드를 그대로 입력하면 그 종목이 1순위다', () => {
+    const result = rankSymbolMatches(
+      [symbol('005935', '삼성전자우'), symbol('005930', '삼성전자')],
+      '005930',
+      10,
+    );
+    expect(result[0]?.code).toBe('005930');
+  });
+
+  it('같은 관련도면 짧은 이름을 먼저 준다', () => {
+    const result = rankSymbolMatches(
+      [symbol('005935', '삼성전자우'), symbol('005930', '삼성전자')],
+      '삼성전자',
+      10,
+    );
+    expect(result.map((item) => item.name)).toEqual(['삼성전자', '삼성전자우']);
+  });
+
+  it('영문 종목명은 대소문자를 구분하지 않는다', () => {
+    expect(rankSymbolMatches([symbol('001', 'KODEX 200')], 'kodex', 10)).toHaveLength(1);
+  });
+
+  it('여러 시장 목록에 걸친 같은 코드는 한 건으로 합친다', () => {
+    const result = rankSymbolMatches(
+      [symbol('069500', 'KODEX 200'), symbol('069500', 'KODEX 200', 'etf')],
+      'KODEX',
+      10,
+    );
+    expect(result).toHaveLength(1);
+  });
+
+  it('limit 을 넘겨 주지 않는다', () => {
+    const many = Array.from({ length: 30 }, (_, index) =>
+      symbol(String(index).padStart(6, '0'), `삼성${index}`),
+    );
+    expect(rankSymbolMatches(many, '삼성', 5)).toHaveLength(5);
+  });
+
+  it('어디에도 걸리지 않는 검색어는 빈 목록이다', () => {
+    expect(rankSymbolMatches([symbol('005930', '삼성전자')], '없는종목', 10)).toEqual([]);
+  });
+
+  it('공백뿐인 검색어로는 전 종목을 퍼가지 못한다', () => {
+    expect(rankSymbolMatches([symbol('005930', '삼성전자')], '   ', 10)).toEqual([]);
   });
 });

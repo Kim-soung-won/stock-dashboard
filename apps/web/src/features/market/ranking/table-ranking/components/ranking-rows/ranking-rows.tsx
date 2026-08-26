@@ -5,12 +5,13 @@ import { RANKING_META, rankingQueries } from '@/entities/market/ranking';
 import { useTickStream } from '@/entities/market/quote';
 import { useWatchlist } from '@/entities/watchlist/item';
 import { formatCompact, formatRate, formatSignedWon, formatWon } from '@/shared/lib';
+import type { SelectSymbol } from '@/shared/lib';
 import { StaleOverlay, StarButton, ValueText } from '@/shared/ui';
 
 interface RankingRowsProps {
   kind: RankingKind;
   market: RankingMarket;
-  onSelect?: (code: string) => void;
+  onSelect?: SelectSymbol;
 }
 
 /** 실시간 구독은 상위 N개만. 순위표 전체를 등록하면 유량·구독 수가 낭비된다. */
@@ -43,11 +44,15 @@ export const RankingRows = ({ kind, market, onSelect }: RankingRowsProps) => {
           <tr>
             <th className="grid__num">순위</th>
             <th>종목</th>
-            <th className="grid__num">{meta.showsValue ? '현재가' : '가격'}</th>
+            {/* 시가총액 순위의 가격은 전일종가다 — "현재가"라고 쓰면 거짓말이 된다. */}
+            <th className="grid__num">
+              {meta.showsMarketCap ? '전일종가' : meta.showsValue ? '현재가' : '가격'}
+            </th>
             <th className="grid__num">전일대비</th>
             <th className="grid__num">등락률</th>
             {meta.showsVolume ? <th className="grid__num">거래량</th> : null}
             {meta.showsValue ? <th className="grid__num">거래대금</th> : null}
+            {meta.showsMarketCap ? <th className="grid__num">시가총액</th> : null}
             <th className="grid__num">관심</th>
           </tr>
         </thead>
@@ -64,7 +69,7 @@ export const RankingRows = ({ kind, market, onSelect }: RankingRowsProps) => {
               <tr
                 key={item.code}
                 className={onSelect ? 'grid__row--clickable' : undefined}
-                onClick={() => onSelect?.(item.code)}
+                onClick={() => onSelect?.({ code: item.code, name: item.name })}
               >
                 <td className="grid__num">
                   {item.rank}
@@ -98,6 +103,9 @@ export const RankingRows = ({ kind, market, onSelect }: RankingRowsProps) => {
                 {meta.showsValue ? (
                   <td className="grid__num">{formatCompact(item.tradeValue)}</td>
                 ) : null}
+                {meta.showsMarketCap ? (
+                  <td className="grid__num">{formatCompact(item.marketCap)}</td>
+                ) : null}
                 <td className="grid__num">
                   <StarButton
                     watched={watch.isWatched(item.code)}
@@ -109,7 +117,7 @@ export const RankingRows = ({ kind, market, onSelect }: RankingRowsProps) => {
           })}
           {items.length === 0 ? (
             <tr>
-              <td colSpan={8} className="state">
+              <td colSpan={9} className="state">
                 순위 데이터가 없습니다. 장 시작 전이거나 조건에 맞는 종목이 없습니다.
               </td>
             </tr>

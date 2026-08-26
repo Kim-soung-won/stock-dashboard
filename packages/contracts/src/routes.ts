@@ -5,6 +5,8 @@ export const API_ROUTES = {
   health: '/api/health',
   market: {
     symbols: '/api/market/symbols',
+    /** 종목명·코드 부분일치 검색(전 시장 통합). 이름으로 종목을 고르는 모든 입력이 쓴다. */
+    symbolSearch: '/api/market/symbols/search',
     quote: (code: string) => `/api/market/quote/${code}`,
     candles: (code: string) => `/api/market/candles/${code}`,
     orderBook: (code: string) => `/api/market/order-book/${code}`,
