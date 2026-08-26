@@ -1,4 +1,5 @@
 export { authStore, useAuthToken } from './auth-store';
+export { getClientId } from './client-id';
 export type { DebugEntry, DebugLevel } from './debug-log';
 export { debugLog } from './debug-log';
 export type { ErrorReport } from './error-report';
@@ -6,5 +7,9 @@ export { formatErrorReport, toErrorReport } from './error-report';
 export * from './format';
 export { menuItems } from './menu-items';
 export { pathKeys } from './path-keys';
+export type { Mode } from './mode-store';
+export { modeStore, useMode } from './mode-store';
 export { queryClient } from './query-client';
 export { realtimeClient } from './realtime-client';
+export type { Theme } from './theme-store';
+export { themeStore, useTheme } from './theme-store';

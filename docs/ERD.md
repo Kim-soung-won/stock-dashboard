@@ -11,13 +11,17 @@ DB 는 "키움에 없는 것"만 보관한다. 시세·잔고·예수금의 진�
 - **실계좌 주문**(`Order`, `OrderEvent`) — 키움 주문 API 의 멱등성·상태추적·감사용.
 - **모의투자 경쟁**(`Participant`·`Season`·`Portfolio`·`Holding`·`PaperTrade`) — 여기서는 DB 가
   진실이다. 키움 주문 API 를 쓰지 않는다.
+- **관심 종목**(`WatchlistItem`) — 참가자별 관심 종목. 코드+이름 스냅샷만 담고 시세는 저장하지 않는다.
 - `SymbolCache` — 어느 쪽에도 속하지 않는 종목 마스터 캐시(없어도 동작).
+- `ServiceUsageLog` — 전역 인터셉터가 모든 HTTP 요청을 append-only 로 적재하는 사용 이력(감사·분석).
+  어느 도메인도 참조하지 않는 독립 테이블이다(FK 없음).
 
 ```mermaid
 erDiagram
     Order ||--o{ OrderEvent : "has"
 
     Participant ||--o{ Portfolio : "joins"
+    Participant ||--o{ WatchlistItem : "watches"
     Season      ||--o{ Portfolio : "scopes"
     Portfolio   ||--o{ Holding : "holds"
     Portfolio   ||--o{ PaperTrade : "journals"
@@ -60,6 +64,8 @@ erDiagram
         string   id PK
         string   nickname UK
         string   pinHash "scrypt salt:derivedKey — 평문 PIN 저장 안 함"
+        string   bio "SNS 한 줄 소개(선택)"
+        string   avatarEmoji "SNS 아바타 이모지(선택)"
         datetime createdAt
     }
 
@@ -113,6 +119,27 @@ erDiagram
         string   name
         datetime updatedAt
     }
+
+    WatchlistItem {
+        string   id PK
+        string   participantId FK
+        string   code "6자리 종목코드"
+        string   name "추가 시점 이름 스냅샷(없으면 null)"
+        datetime createdAt
+    }
+
+    ServiceUsageLog {
+        string   id PK
+        string   participantId "토큰에서 확정한 신뢰 신원 — 비로그인이면 null"
+        string   headerUserId "X-User-Id 헤더(디바이스/익명, 위조 가능)"
+        string   method "GET | POST | ..."
+        string   path "쿼리스트링 제외 경로"
+        int      statusCode
+        int      durationMs
+        string   ip
+        string   userAgent
+        datetime createdAt
+    }
 ```
 
 ## 핵심 제약 (스키마의 unique / 복합키가 강제하는 규칙)
@@ -123,6 +150,7 @@ erDiagram
 | `nickname` unique | `Participant` | 닉네임이 곧 로그인 아이디. |
 | `(participantId, seasonId)` unique | `Portfolio` | 한 시즌에 참가자당 포트폴리오 1개. |
 | `(portfolioId, code)` unique | `Holding` | 종목당 보유 행 1개(수량 합산). |
+| `(participantId, code)` unique | `WatchlistItem` | 참가자당 같은 종목을 한 번만 담는다. |
 | `(market, code)` 복합 PK | `SymbolCache` | ka10099 시장 구분이 배타적이지 않아 code 단일키면 서로 덮어씀. |
 | `onDelete: Cascade` | 모든 FK | 부모 삭제 시 자식 자동 정리(고아 행 방지). |
 

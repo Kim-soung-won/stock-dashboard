@@ -221,12 +221,14 @@ export class CompetitionService {
   private serialize<T>(key: string, task: () => Promise<T>): Promise<T> {
     const previous = this.locks.get(key) ?? Promise.resolve();
     const next = previous.catch(() => undefined).then(task);
-    this.locks.set(
-      key,
-      next.finally(() => {
-        if (this.locks.get(key) === next) this.locks.delete(key);
-      }),
-    );
+    // 락 체인에는 실패를 삼킨 버전을 저장한다: (1) 매매가 거부돼도 다음 작업을 막지 않고
+    // (2) 아무도 await 하지 않는 락 프로미스에서 미처리 거부(unhandledRejection)가 나지 않는다.
+    // 호출자에게는 실제 결과/거부를 그대로 돌려주는 next 를 반환한다.
+    const chain = next.catch(() => undefined);
+    this.locks.set(key, chain);
+    void chain.finally(() => {
+      if (this.locks.get(key) === chain) this.locks.delete(key);
+    });
     return next;
   }
 }

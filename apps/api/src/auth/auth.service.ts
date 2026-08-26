@@ -58,4 +58,6 @@ export const toParticipant = (row: ParticipantRow): Participant => ({
   id: row.id,
   nickname: row.nickname,
   createdAt: row.createdAt.toISOString(),
+  bio: row.bio,
+  avatarEmoji: row.avatarEmoji,
 });

@@ -3,8 +3,9 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import type { MarketKind } from '@stock/contracts';
 import { useTickStream } from '@/entities/market/quote';
 import { symbolQueries } from '@/entities/market/symbol';
+import { useWatchlist } from '@/entities/watchlist/item';
 import { formatRate, formatWon } from '@/shared/lib';
-import { StaleOverlay, ValueText } from '@/shared/ui';
+import { StaleOverlay, StarButton, ValueText } from '@/shared/ui';
 
 interface SymbolRowsProps {
   market: MarketKind;
@@ -24,6 +25,7 @@ const PAGE_SIZE = 30;
  */
 export const SymbolRows = ({ market, keyword, onSelect }: SymbolRowsProps) => {
   const { data: symbols } = useSuspenseQuery(symbolQueries.list(market));
+  const watch = useWatchlist();
   const [page, setPage] = useState(0);
 
   // 검색어를 지연시켜 타이핑 중 목록이 통째로 다시 그려지지 않게 한다.
@@ -64,6 +66,7 @@ export const SymbolRows = ({ market, keyword, onSelect }: SymbolRowsProps) => {
       <table className="grid">
         <thead>
           <tr>
+            <th className="grid__num">관심</th>
             <th>종목</th>
             <th>시장</th>
             <th className="grid__num">현재가(실시간)</th>
@@ -79,6 +82,12 @@ export const SymbolRows = ({ market, keyword, onSelect }: SymbolRowsProps) => {
                 className={onSelect ? 'grid__row--clickable' : undefined}
                 onClick={() => onSelect?.(symbol.code)}
               >
+                <td className="grid__num">
+                  <StarButton
+                    watched={watch.isWatched(symbol.code)}
+                    onToggle={() => watch.toggle(symbol.code, symbol.name)}
+                  />
+                </td>
                 <td>
                   <span className="grid__name">{symbol.name}</span>
                   <span className="grid__code">{symbol.code}</span>
@@ -101,7 +110,7 @@ export const SymbolRows = ({ market, keyword, onSelect }: SymbolRowsProps) => {
           })}
           {visible.length === 0 ? (
             <tr>
-              <td colSpan={4} className="state">
+              <td colSpan={5} className="state">
                 검색 결과가 없습니다.
               </td>
             </tr>

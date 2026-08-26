@@ -14,10 +14,12 @@
     "db:studio": "dotenv -e ../../.env -- prisma studio"
   },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^7.3.4",
     "@nestjs/common": "^11.0.11",
     "@nestjs/core": "^11.0.11",
     "@nestjs/platform-express": "^11.0.11",
     "@nestjs/platform-ws": "^11.0.11",
+    "@nestjs/swagger": "^11.4.7",
     "@nestjs/websockets": "^11.0.11",
     "@prisma/client": "^6.4.1",
     "@stock/contracts": "workspace:*",
@@ -25,6 +27,7 @@
     "dotenv": "^16.4.7",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "swagger-ui-express": "^5.0.1",
     "ws": "^8.18.1",
     "zod": "^3.24.1"
   },

@@ -4,6 +4,8 @@ export * from './ranking';
 export * from './account';
 export * from './trading';
 export * from './competition';
+export * from './watchlist';
+export * from './profile';
 export * from './realtime';
 export * from './system';
 export * from './routes';

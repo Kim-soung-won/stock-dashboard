@@ -3,5 +3,8 @@ export { ErrorBoundary, ErrorFallback } from './error-boundary';
 export { Panel } from './panel';
 export { QueryErrorBoundary } from './query-error-boundary';
 export { StaleOverlay } from './stale-overlay';
+export { ModeToggle } from './mode-toggle';
+export { StarButton } from './star-button';
 export { StatusDot } from './status-dot';
+export { ThemeToggle } from './theme-toggle';
 export { ValueText } from './value-text';

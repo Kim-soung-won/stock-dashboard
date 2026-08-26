@@ -3,8 +3,9 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import type { RankingKind, RankingMarket } from '@stock/contracts';
 import { RANKING_META, rankingQueries } from '@/entities/market/ranking';
 import { useTickStream } from '@/entities/market/quote';
+import { useWatchlist } from '@/entities/watchlist/item';
 import { formatCompact, formatRate, formatSignedWon, formatWon } from '@/shared/lib';
-import { StaleOverlay, ValueText } from '@/shared/ui';
+import { StaleOverlay, StarButton, ValueText } from '@/shared/ui';
 
 interface RankingRowsProps {
   kind: RankingKind;
@@ -30,6 +31,7 @@ export const RankingRows = ({ kind, market, onSelect }: RankingRowsProps) => {
 
   const { data: items } = useSuspenseQuery(rankingQueries.list(deferredKind, deferredMarket));
   const meta = RANKING_META[deferredKind];
+  const watch = useWatchlist();
 
   const liveCodes = items.slice(0, LIVE_ROWS).map((item) => item.code);
   const ticks = useTickStream(`ranking:${deferredKind}`, liveCodes);
@@ -46,6 +48,7 @@ export const RankingRows = ({ kind, market, onSelect }: RankingRowsProps) => {
             <th className="grid__num">등락률</th>
             {meta.showsVolume ? <th className="grid__num">거래량</th> : null}
             {meta.showsValue ? <th className="grid__num">거래대금</th> : null}
+            <th className="grid__num">관심</th>
           </tr>
         </thead>
         <tbody>
@@ -95,12 +98,18 @@ export const RankingRows = ({ kind, market, onSelect }: RankingRowsProps) => {
                 {meta.showsValue ? (
                   <td className="grid__num">{formatCompact(item.tradeValue)}</td>
                 ) : null}
+                <td className="grid__num">
+                  <StarButton
+                    watched={watch.isWatched(item.code)}
+                    onToggle={() => watch.toggle(item.code, item.name)}
+                  />
+                </td>
               </tr>
             );
           })}
           {items.length === 0 ? (
             <tr>
-              <td colSpan={7} className="state">
+              <td colSpan={8} className="state">
                 순위 데이터가 없습니다. 장 시작 전이거나 조건에 맞는 종목이 없습니다.
               </td>
             </tr>

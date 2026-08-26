@@ -43,6 +43,10 @@ export const participantSchema = z.object({
   id: z.string(),
   nickname: z.string(),
   createdAt: z.string(),
+  /** 한 줄 소개(SNS 프로필). 미설정이면 null. */
+  bio: z.string().nullable(),
+  /** 아바타 이모지. 미설정이면 null. */
+  avatarEmoji: z.string().nullable(),
 });
 export type Participant = z.infer<typeof participantSchema>;
 

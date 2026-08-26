@@ -20,5 +20,7 @@ import { SeasonService } from './season.service';
   imports: [AuthModule, MarketModule, RealtimeModule],
   controllers: [CompetitionController],
   providers: [SeasonService, PricebookService, LeaderboardService, CompetitionService],
+  // 프로필(읽기 전용 합성 뷰)이 포트폴리오·순위를 재사용한다.
+  exports: [CompetitionService, LeaderboardService],
 })
 export class CompetitionModule {}

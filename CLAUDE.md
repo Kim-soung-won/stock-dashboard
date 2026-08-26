@@ -20,6 +20,10 @@ kiwoom-rest-api-spec.json   키움 스펙 원본 (2.4MB, 342 TR) — 통째로 �
 분리·멱등성 없음·장 운영시간)은 `.claude/skills/kiwoom-api/reference/constraints.md`.
 스펙 조회는 아래 스킬 CLI.
 
+**기능 목록**은 각 앱의 `CLAUDE.md` 가 관리한다 — 백엔드 `apps/api/CLAUDE.md`(엔드포인트·모듈·
+DB 모델), 프론트 `apps/web/CLAUDE.md`(페이지·feature·entities). 기능을 추가/변경/삭제하면 해당
+표를 같은 변경에서 갱신한다(엔드포인트는 계약 → `docs/openapi.ts` → 표가 함께 움직인다).
+
 ## 명령
 
 ```bash
@@ -96,6 +100,28 @@ python .claude/skills/kiwoom-api/scripts/kiwoom_spec.py errors 8005
 `.claude/skills/kiwoom-api/reference/{catalog-*,realtime,error-codes}.md`.
 스펙이 갱신되면 `pnpm gen:kiwoom` 과 `build_reference.py` 를 다시 돌린다.
 (`conventions.md`·`playbook.md` 는 수동 관리 문서다)
+
+## 테스트
+
+테스트는 **기능 명세이자 회귀 안전망**이다. 콜로케이트 `*.spec.ts(x)`(소스 옆), vitest.
+`pnpm test`(전체) / `pnpm --filter @stock/api test` / `pnpm --filter @stock/web test` /
+`pnpm --filter @stock/web vitest -- --watch`(워치).
+
+- **계약을 고정한다, 구현을 박제하지 않는다.** describe/it 는 한국어로 "무엇을 보장하는가"를
+  적고, 하나의 `it` 은 하나의 행동만 검증한다. 내부 호출 순서·에러 문자열 전체를 박는
+  change-detector 는 만들지 않는다(리팩터링을 막는다).
+- **바깥 세계에 붙지 않는다.** 키움·DB·네트워크는 목킹한다. 서비스는 Prisma/주입 의존성을
+  `vi.fn()` 으로 세우고 `new Service(mock)` 으로 단위 검증한다(Nest Test 모듈·실 DB 불필요).
+  순수 변환(mapper·libs)은 직접 호출, 컴포넌트·훅은 `@testing-library/react`.
+- **레이어별 대상**
+  - 백엔드: mapper/libs(부호·단위·형태), service(멱등성·집계·분기 — Prisma 목킹),
+    guard/interceptor(인증·신원 해석 — `ExecutionContext` 목킹). 예:
+    `watchlist.service.spec.ts`·`profile.service.spec.ts`·`common/usage-logging.interceptor.spec.ts`.
+  - 프론트: libs/model(순수 로직·쿼리 결정), 컴포넌트(권한·상태 분기). 예:
+    `entities/watchlist/item/watchlist.model.spec.tsx`(toggle add/remove), `error-boundary.spec.tsx`.
+- **기능 추가 규칙**: 새 기능은 사용자 계약을 고정하는 spec 을 **같은 변경에서** 추가한다
+  (각 앱 CLAUDE.md 의 기능 목록 표 갱신과 한 묶음). spec 이 없으면 그 기능은 "미명세"로 본다.
+- 스펙은 `src/**` 에 둔다 → `typecheck` 에는 포함되고 런타임 빌드(`tsconfig.build.json`)에서는 제외된다.
 
 ## 디버깅
 

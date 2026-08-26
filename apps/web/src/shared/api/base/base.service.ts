@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import { authStore } from '@/shared/lib/auth-store';
+import { getClientId } from '@/shared/lib/client-id';
 
 /**
  * BFF 호출 공용 인프라 (도메인 아님 — 수정 시 전체에 영향).
@@ -32,6 +33,8 @@ const request = async (path: string, init?: RequestInit): Promise<unknown> => {
     ...init,
     headers: {
       'Content-Type': 'application/json',
+      // 모든 요청에 식별자를 실어 서버가 사용 이력을 귀속시킨다(비로그인 포함).
+      'X-User-Id': getClientId(),
       ...authHeaders(),
       ...(init?.headers ?? {}),
     },
@@ -79,6 +82,20 @@ export const BaseService = {
     payload: unknown,
   ): Promise<z.infer<T>> {
     const body = await request(path, { method: 'POST', body: JSON.stringify(payload) });
+    return dataSchema.parse((body as { data: unknown }).data) as z.infer<T>;
+  },
+
+  async del<T extends z.ZodTypeAny>(path: string, dataSchema: T): Promise<z.infer<T>> {
+    const body = await request(path, { method: 'DELETE' });
+    return dataSchema.parse((body as { data: unknown }).data) as z.infer<T>;
+  },
+
+  async patch<T extends z.ZodTypeAny>(
+    path: string,
+    dataSchema: T,
+    payload: unknown,
+  ): Promise<z.infer<T>> {
+    const body = await request(path, { method: 'PATCH', body: JSON.stringify(payload) });
     return dataSchema.parse((body as { data: unknown }).data) as z.infer<T>;
   },
 };

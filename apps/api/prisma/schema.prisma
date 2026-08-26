@@ -87,9 +87,29 @@ model Participant {
   nickname     String   @unique
   /// scrypt 해시 (`salt:derivedKey`, 둘 다 hex). 평문 PIN 은 저장하지 않는다.
   pinHash      String
+  /// SNS 프로필: 한 줄 소개(선택).
+  bio          String?
+  /// SNS 프로필: 아바타 이모지(선택).
+  avatarEmoji  String?
   createdAt    DateTime @default(now())
 
   portfolios   Portfolio[]
+  watchlist    WatchlistItem[]
+}
+
+/// 참가자별 관심 종목. 저장하는 것은 코드 + 표시용 이름 스냅샷뿐이고, 시세는 담지 않는다
+/// (조회 시 실시간 WS 로 붙인다). `(participantId, code)` 유니크로 같은 종목 중복을 막는다.
+model WatchlistItem {
+  id            String      @id @default(cuid())
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  code          String
+  /// 추가 시점의 표시용 이름 스냅샷(코드만으로 담았으면 null).
+  name          String?
+  createdAt     DateTime    @default(now())
+
+  @@unique([participantId, code])
+  @@index([participantId, createdAt])
 }
 
 /// 시즌. 이 창(startAt~endAt) 안에서만 체결이 허용되고, 종료 시 순위가 확정된다.
@@ -182,4 +202,32 @@ model SymbolCache {
   updatedAt DateTime @updatedAt
 
   @@id([market, code])
+}
+
+/// 서비스 사용 이력(감사·분석). 전역 인터셉터가 HTTP 요청 완료마다 append-only 로 적재한다.
+///
+/// 신원은 두 갈래로 남긴다: (1) `participantId` 는 Bearer 토큰(HMAC)에서 서버가 확정한
+/// **신뢰값**이라 비로그인 요청이면 null 이고, (2) `headerUserId` 는 클라이언트가 보낸
+/// `X-User-Id`(디바이스/익명 id)로 위조 가능하나 비로그인 트래픽 식별·세션 연결용 보조값이다.
+/// 시세 WS 틱은 초당 수십 건이라 대상에서 제외한다(HTTP 만 적재). 요청 본문은 저장하지 않는다.
+model ServiceUsageLog {
+  id            String   @id @default(cuid())
+  /// 토큰에서 확정한 참가자 id(신뢰값). 비로그인이면 null.
+  participantId String?
+  /// 클라이언트 X-User-Id 헤더(위조 가능, 보조 식별값).
+  headerUserId  String?
+  /// 'GET' | 'POST' | ...
+  method        String
+  /// 쿼리스트링을 뗀 경로(/api/...). 민감값이 쿼리에 실릴 수 있어 path 만 남긴다.
+  path          String
+  statusCode    Int
+  /// 처리 소요(ms)
+  durationMs    Int
+  ip            String?
+  userAgent     String?
+  createdAt     DateTime @default(now())
+
+  @@index([participantId, createdAt])
+  @@index([path, createdAt])
+  @@index([createdAt])
 }

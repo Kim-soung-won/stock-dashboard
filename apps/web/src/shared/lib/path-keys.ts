@@ -16,6 +16,15 @@ export const pathKeys = {
     leaderboard: '/competition/leaderboard',
     portfolio: '/competition/portfolio',
   },
+  watchlist: {
+    list: '/watchlist',
+  },
+  profile: {
+    /** 공개 프로필(SNS). 다른 참가자도 조회 가능 */
+    view: (participantId: string) => `/profile/${participantId}`,
+    /** 내 프로필(세션 id 로 해석) */
+    me: '/profile/me',
+  },
   auth: {
     login: '/login',
   },

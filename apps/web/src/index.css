@@ -20,13 +20,102 @@
   --gold: #ffcd3c;       /* HI-SCORE·패널 제목 */
   --on-accent: #16081a;  /* 시안 버튼 위 텍스트 */
   --ink: #000;           /* 하드 픽셀 테두리·그림자 */
+  --info-bg: #253044;    /* MOCK·정보 배경(파랑계) */
+  --danger-bg: #4a1d1d;  /* REAL·위험 배경(붉은계) */
 
   --font-pixel: 'Press Start 2P', monospace;
   --font-body: 'Galmuri11', 'JetBrains Mono', ui-monospace, monospace;
 
+  /* 스킨 형태 토큰 — 테마가 바꾼다(도트=두꺼운 테두리+하드 그림자, 터미널=얇은 선). */
+  --bw: 3px; /* 카드·버튼 기본 테두리 */
+  --bw2: 2px; /* 얇은 테두리(뱃지·입력) */
+  --shadow: 4px 4px 0 var(--ink); /* 아케이드 하드 그림자 */
+  --grid-opacity: 0.35; /* 배경 도트 그리드 */
+  --scan-opacity: 0.5; /* CRT 스캔라인 */
+  --img-render: pixelated;
+
   color-scheme: dark;
   font-family: var(--font-body);
   font-size: 14px;
+}
+
+/* ---------- TERMINAL 테마 (claude.ai/design 의 terminal 프리셋 이식)
+   도트 아케이드를 끄고, 얇은 선 + IBM Plex 모노 터미널 룩으로 전환한다.
+   방향색은 앱 국내 관례 유지: 상승=붉은계(#ff6b6b) / 하락=파랑. 민트그린은 브랜드 액센트. */
+:root[data-theme='terminal'] {
+  --bg: #0a0c10;
+  --bg-panel: #11151b;
+  --bg-elev: #181e27;
+  --line: #242c38;
+  --line-soft: #1b222c;
+  --text: #e8edf4;
+  --text-dim: #7d8794;
+  --up: #ff6b6b; /* 상승(붉은계) */
+  --down: #4d9fff; /* 하락(파랑) */
+  --flat: #7d8794;
+  --accent: #2ee6a8; /* 브랜드 민트그린 */
+  --gold: #ffb84d; /* 강조(주황) */
+  --on-accent: #0a0c10;
+  --ink: #242c38; /* 하드 검정 대신 은은한 엣지 */
+  --info-bg: #152230;
+  --danger-bg: #2e1515;
+
+  --font-pixel: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-body: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --bw: 1px;
+  --bw2: 1px;
+  --shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+  --grid-opacity: 0;
+  --scan-opacity: 0;
+  --img-render: auto;
+}
+
+/* ---------- LIGHT 모드
+   모드(data-mode)는 색만 바꾼다. 테두리 두께·그림자·폰트·그리드/스캔 같은 형태 토큰은
+   테마(data-theme)가 계속 소유하므로 두 축이 캐스케이드에서 충돌하지 않는다.
+   방향색은 라이트 배경에서 대비를 확보하려 더 진한 값으로 조정한다. */
+
+/* 도트(arcade) 라이트 — 밝은 카드 + 검정 하드 테두리/그림자 유지 */
+:root[data-mode='light'] {
+  color-scheme: light;
+  --bg: #f3f1fb;
+  --bg-panel: #ffffff;
+  --bg-elev: #ece7f8;
+  --line: #cabfe8;
+  --line-soft: #ded7f1;
+  --text: #191338;
+  --text-dim: #665d8c;
+  --up: #e0135e; /* 상승(붉은계) */
+  --down: #1f5fd6; /* 하락(파랑) */
+  --flat: #6b7280;
+  --accent: #0f9e91; /* 브랜드 시안(진한 청록) */
+  --gold: #b07600;
+  --on-accent: #ffffff;
+  --ink: #191338; /* 라이트에서도 하드 픽셀 테두리는 짙게 유지 */
+  --info-bg: #dfeafb;
+  --danger-bg: #fbe1e1;
+}
+
+/* 터미널 라이트 — 밝은 IDE 터미널(연한 선) */
+:root[data-theme='terminal'][data-mode='light'] {
+  color-scheme: light;
+  --bg: #fbfcfd;
+  --bg-panel: #ffffff;
+  --bg-elev: #f1f4f7;
+  --line: #d9dee5;
+  --line-soft: #e8ebf0;
+  --text: #182029;
+  --text-dim: #58626f;
+  --up: #d13b3b; /* 상승(붉은계) */
+  --down: #2563d6; /* 하락(파랑) */
+  --flat: #58626f;
+  --accent: #0f9d6e; /* 브랜드 민트그린(진하게) */
+  --gold: #b5730a;
+  --on-accent: #ffffff;
+  --ink: #d9dee5; /* 연한 엣지 */
+  --info-bg: #e6f0fb;
+  --danger-bg: #fbe6e6;
 }
 
 * {
@@ -38,7 +127,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
-  image-rendering: pixelated;
+  image-rendering: var(--img-render);
 }
 
 /* CRT 아케이드 분위기: 도트 그리드(뒤) + 스캔라인(앞). 콘텐츠 클릭은 통과시킨다. */
@@ -50,7 +139,7 @@ body::before {
   pointer-events: none;
   background-image: radial-gradient(var(--line) 1px, transparent 1px);
   background-size: 24px 24px;
-  opacity: 0.35;
+  opacity: var(--grid-opacity);
 }
 
 body::after {
@@ -66,7 +155,7 @@ body::after {
     transparent 1px,
     transparent 3px
   );
-  opacity: 0.5;
+  opacity: var(--scan-opacity);
 }
 
 #root {
@@ -106,7 +195,7 @@ body::after {
   min-height: 76px;
   padding: 10px 24px;
   background: var(--bg-panel);
-  border-bottom: 3px solid var(--line);
+  border-bottom: var(--bw) solid var(--line);
   flex-wrap: wrap;
 }
 
@@ -138,17 +227,17 @@ body::after {
 .env-badge {
   font-size: 11px;
   padding: 2px 7px;
-  border: 2px solid var(--ink);
+  border: var(--bw2) solid var(--ink);
   font-weight: 700;
 }
 
 .env-badge--mock {
-  background: #253044;
+  background: var(--info-bg);
   color: var(--accent);
 }
 
 .env-badge--real {
-  background: #4a1d1d;
+  background: var(--danger-bg);
   color: var(--up);
 }
 
@@ -162,7 +251,7 @@ body::after {
 .shell__link {
   padding: 7px 12px;
   background: var(--bg-elev);
-  border: 2px solid var(--ink);
+  border: var(--bw2) solid var(--ink);
   color: var(--text-dim);
   font-family: var(--font-body);
   font-size: 12px;
@@ -179,6 +268,115 @@ body::after {
   background: var(--accent);
   color: var(--on-accent);
   font-weight: 700;
+}
+
+/* ---------- 프로필 (SNS) */
+.profile__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.profile__avatar {
+  font-size: 40px;
+  line-height: 1;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elev);
+  border: var(--bw) solid var(--ink);
+  box-shadow: var(--shadow);
+}
+
+.profile__name {
+  font-family: var(--font-pixel);
+  font-size: 15px;
+  color: var(--gold);
+}
+
+.profile__meta {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.profile__bio {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.form-edit-profile .chip-row {
+  margin-bottom: 10px;
+}
+
+.form-edit-profile .chip-row button {
+  font-size: 15px;
+}
+
+/* 헤더 사용자 링크(아바타) */
+.shell__user-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.shell__user-avatar {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* 관심종목 ★ 토글 */
+.star-btn {
+  width: auto;
+  padding: 2px 6px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.star-btn:hover:not(:disabled) {
+  color: var(--gold);
+  border: none;
+}
+
+.star-btn--on {
+  color: var(--gold);
+}
+
+/* 관심종목 칩(전용 페이지의 제거 UI) */
+.watch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 2px 6px;
+  border: var(--bw2) solid var(--ink);
+  background: var(--bg-elev);
+}
+
+/* 스킨 전환 토글 */
+.theme-toggle {
+  width: auto;
+  padding: 6px 10px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  background: var(--bg-elev);
+  border: var(--bw2) solid var(--ink);
+}
+
+.theme-toggle:hover:not(:disabled) {
+  color: var(--accent);
 }
 
 /* 헤더 우측: SCORE / HI-SCORE 아케이드 지표 */
@@ -216,8 +414,8 @@ body::after {
   gap: 8px;
   padding: 8px 12px;
   background: var(--bg-elev);
-  border: 3px solid var(--ink);
-  box-shadow: 4px 4px 0 var(--ink);
+  border: var(--bw) solid var(--ink);
+  box-shadow: var(--shadow);
   font-size: 12px;
   color: var(--text-dim);
 }
@@ -254,7 +452,7 @@ body::after {
   font-size: 11px;
   color: var(--text-dim);
   background: var(--bg-elev);
-  border: 2px solid var(--ink);
+  border: var(--bw2) solid var(--ink);
 }
 
 .shell__main {
@@ -309,8 +507,8 @@ body::after {
 /* ---------- 패널 */
 .panel {
   background: var(--bg-panel);
-  border: 3px solid var(--ink);
-  box-shadow: 4px 4px 0 var(--ink);
+  border: var(--bw) solid var(--ink);
+  box-shadow: var(--shadow);
   margin-bottom: 18px;
   overflow: hidden;
 }
@@ -321,7 +519,7 @@ body::after {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  border-bottom: 3px solid var(--line);
+  border-bottom: var(--bw) solid var(--line);
 }
 
 .panel__title {
@@ -356,7 +554,7 @@ body::after {
   color: var(--text-dim);
   font-weight: 400;
   background: var(--bg-elev);
-  border-bottom: 2px solid var(--line);
+  border-bottom: var(--bw2) solid var(--line);
 }
 
 .grid__num {
@@ -525,7 +723,7 @@ button {
   font: inherit;
   color: var(--text);
   background: var(--bg-elev);
-  border: 2px solid var(--ink);
+  border: var(--bw2) solid var(--ink);
   border-radius: 0;
   padding: 8px 10px;
   width: 100%;
@@ -573,14 +771,14 @@ button:disabled {
 .form-order__env {
   padding: 8px 10px;
   border-radius: 6px;
-  background: #253044;
+  background: var(--info-bg);
   color: var(--down);
   font-size: 12px;
   margin-bottom: 12px;
 }
 
 .form-order__env--real {
-  background: #4a1d1d;
+  background: var(--danger-bg);
   color: var(--up);
   font-weight: 700;
 }
@@ -613,8 +811,8 @@ button:disabled {
 
 .summary__item {
   background: var(--bg-elev);
-  border: 3px solid var(--ink);
-  box-shadow: 4px 4px 0 var(--ink);
+  border: var(--bw) solid var(--ink);
+  box-shadow: var(--shadow);
   padding: 12px 14px;
 }
 
@@ -635,7 +833,7 @@ button:disabled {
   display: inline-block;
   font-size: 11px;
   padding: 2px 6px;
-  border: 2px solid var(--ink);
+  border: var(--bw2) solid var(--ink);
   background: var(--bg-elev);
   color: var(--text-dim);
 }
@@ -959,8 +1157,8 @@ button:disabled {
   width: 100%;
   max-width: 380px;
   background: var(--bg-panel);
-  border: 3px solid var(--ink);
-  box-shadow: 6px 6px 0 var(--ink);
+  border: var(--bw) solid var(--ink);
+  box-shadow: var(--shadow);
   padding: 28px 24px;
 }
 
@@ -1003,13 +1201,13 @@ button:disabled {
 .btn-trade--buy {
   background: var(--accent);
   color: var(--on-accent);
-  box-shadow: 3px 3px 0 var(--ink);
+  box-shadow: var(--shadow);
 }
 
 .btn-trade--sell {
   background: var(--bg-elev);
   color: var(--up);
-  box-shadow: 3px 3px 0 var(--ink);
+  box-shadow: var(--shadow);
 }
 
 /* ---------- 경쟁: 리더보드 */

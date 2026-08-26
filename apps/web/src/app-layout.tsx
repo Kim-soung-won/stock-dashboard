@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useLogout, useSession } from '@/entities/auth/session';
 import { leaderboardQueries } from '@/entities/competition/leaderboard';
 import { portfolioQueries } from '@/entities/competition/portfolio';
 import { healthQueries } from '@/entities/system/health';
-import { formatWon, menuItems, pathKeys } from '@/shared/lib';
-import { DebugPanel } from '@/shared/ui';
+import { formatWon, menuItems, pathKeys, useTheme } from '@/shared/lib';
+import { DebugPanel, ModeToggle, ThemeToggle } from '@/shared/ui';
 
 /**
  * 앱 셸 — STOCK ARCADE 상단 헤더 + 본문.
@@ -21,6 +21,7 @@ export const AppLayout = () => {
   const { data: portfolio } = useQuery(portfolioQueries.current());
   const { data: leaderboard } = useQuery(leaderboardQueries.current());
   const logout = useLogout();
+  const theme = useTheme();
   const isReal = health?.kiwoomEnv === 'real';
 
   // 헤더는 그룹을 펼쳐 한 줄 네비로 보여준다(아케이드 캐비닛 상단 메뉴).
@@ -40,7 +41,7 @@ export const AppLayout = () => {
       <header className="shell__header">
         <div className="shell__brand">
           <span className="shell__brand-stock">STOCK</span>
-          <span className="shell__brand-arcade">ARCADE</span>
+          <span className="shell__brand-arcade">{theme === 'terminal' ? 'TERMINAL' : 'ARCADE'}</span>
           <span className="shell__brand-ver">v0.1</span>
           <span className={'env-badge ' + (isReal ? 'env-badge--real' : 'env-badge--mock')}>
             {isReal ? 'REAL' : 'MOCK'}
@@ -70,9 +71,15 @@ export const AppLayout = () => {
             <span>키움 세션 READY · {isReal ? '실전' : '모의'}</span>
           </div>
 
+          <ThemeToggle />
+          <ModeToggle />
+
           {participant ? (
             <div className="shell__user">
-              <span className="shell__user-name">{participant.nickname}</span>
+              <Link to={pathKeys.profile.me} className="shell__user-link" title="내 프로필">
+                <span className="shell__user-avatar">{participant.avatarEmoji ?? '👤'}</span>
+                <span className="shell__user-name">{participant.nickname}</span>
+              </Link>
               <button type="button" className="shell__logout" onClick={onLogout}>
                 로그아웃
               </button>

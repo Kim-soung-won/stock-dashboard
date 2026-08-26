@@ -4,6 +4,8 @@ import { balanceRoute } from '@/pages/account';
 import { leaderboardRoute, portfolioRoute } from '@/pages/competition';
 import { dashboardRoute, popularRoute, symbolsRoute } from '@/pages/market';
 import { orderRoute } from '@/pages/trading';
+import { watchlistRoute } from '@/pages/watchlist';
+import { profileRoute } from '@/pages/profile';
 import { pathKeys } from '@/shared/lib';
 import { AppLayout } from './app-layout';
 import { RequireAuth } from './require-auth';
@@ -30,6 +32,8 @@ export const router = createBrowserRouter([
       dashboardRoute,
       popularRoute,
       symbolsRoute,
+      watchlistRoute,
+      profileRoute,
       balanceRoute,
       orderRoute,
     ],

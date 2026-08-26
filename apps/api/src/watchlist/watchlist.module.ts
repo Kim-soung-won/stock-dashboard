@@ -1,0 +1,14 @@
+import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
+import { WatchlistController } from './watchlist.controller';
+import { WatchlistService } from './watchlist.service';
+
+/**
+ * 관심 종목. AuthModule 로 참가자 스코프 보호(AuthGuard). PrismaService 는 전역에서 주입.
+ */
+@Module({
+  imports: [AuthModule],
+  controllers: [WatchlistController],
+  providers: [WatchlistService],
+})
+export class WatchlistModule {}

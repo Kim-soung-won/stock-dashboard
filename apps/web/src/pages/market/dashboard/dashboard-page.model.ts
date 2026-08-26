@@ -1,55 +1,23 @@
 import { quoteQueries } from '@/entities/market/quote';
-import { queryClient } from '@/shared/lib';
-
-const STORAGE_KEY = 'watchlist';
-const DEFAULT_CODES = ['005930', '000660', '035420', '005380'];
+import { watchlistQueries } from '@/entities/watchlist/item';
+import { authStore, queryClient } from '@/shared/lib';
 
 /**
- * 관심종목 store (싱글턴).
+ * 라우트 진입 시 관심종목과 그 시세 스냅샷을 미리 받아둔다(첫 렌더 깜빡임 방지).
  *
- * 서버에 관심종목 API(ka01300/ka01301)가 있지만, 우선 로컬에 두고 화면을 완성한다.
- * useSyncExternalStore 로 구독하므로 컴포넌트는 이 모듈만 알면 된다.
+ * 관심종목은 이제 서버(참가자 스코프)가 진실이다 — 예전 localStorage 저장소를 대체했다.
+ * 비로그인 진입은 RequireAuth 가 로그인으로 돌리므로, 여기서는 토큰이 있을 때만 시도하고
+ * 프리페치는 최선노력으로 둔다(실패해도 컴포넌트가 다시 조회한다).
  */
-const load = (): string[] => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_CODES;
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((code): code is string => typeof code === 'string') : DEFAULT_CODES;
-  } catch {
-    return DEFAULT_CODES;
-  }
-};
-
-let codes: string[] = load();
-const listeners = new Set<() => void>();
-
-const emit = () => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(codes));
-  for (const listener of listeners) listener();
-};
-
-export const watchlistStore = {
-  subscribe: (listener: () => void) => {
-    listeners.add(listener);
-    return () => listeners.delete(listener);
-  },
-  getSnapshot: (): string[] => codes,
-  add: (code: string) => {
-    if (code.length < 6 || codes.includes(code)) return;
-    codes = [...codes, code];
-    emit();
-  },
-  remove: (code: string) => {
-    codes = codes.filter((item) => item !== code);
-    emit();
-  },
-};
-
-/** 라우트 진입 시 스냅샷을 미리 받아둔다(첫 렌더 깜빡임 방지). */
 export const dashboardLoader = async (): Promise<null> => {
-  await Promise.all(
-    watchlistStore.getSnapshot().map((code) => queryClient.prefetchQuery(quoteQueries.detail(code))),
-  );
+  if (!authStore.getToken()) return null;
+  try {
+    const items = await queryClient.fetchQuery(watchlistQueries.list());
+    await Promise.all(
+      items.map((item) => queryClient.prefetchQuery(quoteQueries.detail(item.code))),
+    );
+  } catch {
+    /* 최선노력 프리페치 */
+  }
   return null;
 };

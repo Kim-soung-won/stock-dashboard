@@ -38,5 +38,19 @@ export const API_ROUTES = {
     /** 전체 순위(공개) */
     leaderboard: '/api/competition/leaderboard',
   },
+  profile: {
+    /** 공개 프로필 조회(SNS). 누구나 조회 가능 */
+    view: (participantId: string) => `/api/participants/${participantId}/profile`,
+    /** 내 프로필(bio·아바타) 수정. 인증 필요 */
+    updateMine: '/api/profile',
+  },
+  watchlist: {
+    /** 내 관심종목 목록. 인증 필요 */
+    list: '/api/watchlist',
+    /** 관심종목 추가(POST 같은 경로). 인증 필요 */
+    add: '/api/watchlist',
+    /** 관심종목 삭제(DELETE). 인증 필요 */
+    remove: (code: string) => `/api/watchlist/${code}`,
+  },
   realtimeSocket: '/ws',
 } as const;

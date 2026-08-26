@@ -1,8 +1,9 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { useSession } from '@/entities/auth/session';
 import { leaderboardQueries, useLeaderboardStream } from '@/entities/competition/leaderboard';
 import { SEASON_STATUS_LABEL, formatDday } from '@/entities/competition/season';
-import { formatRate, formatSignedWon, formatWon, signDirection } from '@/shared/lib';
+import { formatRate, formatSignedWon, formatWon, pathKeys, signDirection } from '@/shared/lib';
 import { ValueText } from '@/shared/ui';
 
 const RANK_MEDAL: Readonly<Record<number, string>> = { 1: '🥇', 2: '🥈', 3: '🥉' };
@@ -52,7 +53,9 @@ export const TableLeaderboard = () => {
                   {RANK_MEDAL[entry.rank] ?? entry.rank}
                 </td>
                 <td>
-                  <span className="grid__name">{entry.nickname}</span>
+                  <Link className="grid__name" to={pathKeys.profile.view(entry.participantId)}>
+                    {entry.nickname}
+                  </Link>
                   {isMe ? <span className="badge badge--me">나</span> : null}
                 </td>
                 <td className="grid__num">{formatWon(entry.totalValue)}</td>

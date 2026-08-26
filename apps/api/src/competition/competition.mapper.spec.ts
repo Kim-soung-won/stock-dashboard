@@ -78,7 +78,13 @@ describe('buildPortfolio', () => {
   it('참가자·시즌·보유를 하나의 포트폴리오로 조립한다', () => {
     const portfolio = buildPortfolio({
       seasonId: 's1',
-      participant: { id: 'u1', nickname: '철수', createdAt: '2026-01-01T00:00:00.000Z' },
+      participant: {
+        id: 'u1',
+        nickname: '철수',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        bio: null,
+        avatarEmoji: null,
+      },
       startingCash: 1_000_000,
       cash: 500_000,
       holdings: [holding({ quantity: 10, averagePrice: 50_000 })],

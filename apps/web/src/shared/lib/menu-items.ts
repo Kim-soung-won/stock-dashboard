@@ -18,6 +18,14 @@ export const menuItems = [
     ],
   },
   {
+    group: '관심종목',
+    items: [{ label: '관심종목', to: pathKeys.watchlist.list }],
+  },
+  {
+    group: '프로필',
+    items: [{ label: '내 프로필', to: pathKeys.profile.me }],
+  },
+  {
     group: '계좌',
     items: [{ label: '잔고·손익', to: pathKeys.account.balance }],
   },
