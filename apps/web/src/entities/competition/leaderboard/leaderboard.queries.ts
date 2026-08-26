@@ -14,4 +14,15 @@ export const leaderboardQueries = {
       queryFn: () => LeaderboardService.fetchLeaderboard(),
       staleTime: Infinity,
     }),
+
+  /**
+   * 총평가금액 추이. 스냅샷은 서버가 성기게(수 분 주기) 쌓으므로 자주 다시 부를 필요가 없다.
+   * WS 로 실시간 갱신되는 순위표와 달리, 이 곡선은 새 스냅샷이 쌓였을 때만 의미가 바뀐다.
+   */
+  history: () =>
+    queryOptions({
+      queryKey: [...leaderboardQueries.all(), 'history'],
+      queryFn: () => LeaderboardService.fetchHistory(),
+      staleTime: 60_000,
+    }),
 };

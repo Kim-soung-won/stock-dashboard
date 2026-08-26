@@ -23,6 +23,9 @@ export const SELL_TAX_RATE = 0.0015;
 /** 리더보드 브로드캐스트 주기(ms). 시세가 움직인 경우에만 실제로 내보낸다. */
 export const LEADERBOARD_BROADCAST_MS = 2_000;
 
+/** 총평가금액 스냅샷 적재 주기(ms). 라인차트용 시계열 — 너무 촘촘하면 저장이 폭증한다. */
+export const SNAPSHOT_INTERVAL_MS = 5 * 60_000;
+
 /** 거래대금에 대한 수수료(원, 절사). */
 export const feeOf = (amount: number, rate: number): number => Math.floor(amount * rate);
 

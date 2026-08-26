@@ -97,6 +97,23 @@ model Participant {
   watchlist    WatchlistItem[]
 }
 
+/// 총평가금액 시계열 스냅샷. 리더보드는 즉석 계산이라 이력이 없으므로, 주기적으로
+/// (LeaderboardService) 각 참가자의 총평가금액을 append-only 로 적재한다. 날짜 기반
+/// 라인차트가 이걸 읽어 참가자들을 시각적으로 비교한다. 과거는 소급 복원할 수 없다.
+model PortfolioSnapshot {
+  id                  String   @id @default(cuid())
+  seasonId            String
+  participantId       String
+  /// 총평가금액(원)
+  totalValue          Int
+  /// 총수익률 %
+  totalProfitLossRate Float
+  createdAt           DateTime @default(now())
+
+  @@index([seasonId, createdAt])
+  @@index([participantId, createdAt])
+}
+
 /// 참가자별 관심 종목. 저장하는 것은 코드 + 표시용 이름 스냅샷뿐이고, 시세는 담지 않는다
 /// (조회 시 실시간 WS 로 붙인다). `(participantId, code)` 유니크로 같은 종목 중복을 막는다.
 model WatchlistItem {

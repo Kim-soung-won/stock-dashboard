@@ -3,4 +3,5 @@ import type { LeaderboardDtoSchemas } from './leaderboard-dto.contracts';
 
 export namespace LeaderboardDtoTypes {
   export type Leaderboard = z.infer<typeof LeaderboardDtoSchemas.leaderboard>;
+  export type History = z.infer<typeof LeaderboardDtoSchemas.history>;
 }

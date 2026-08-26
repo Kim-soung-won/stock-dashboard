@@ -1,2 +1,1 @@
 export { ChartLeaderboard } from './chart-leaderboard';
-export { TableLeaderboard } from './table-leaderboard';

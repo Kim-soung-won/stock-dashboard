@@ -51,6 +51,7 @@ export function buildOpenApiDocument(): OpenAPIObject {
   const Participant = registry.register('Participant', C.participantSchema);
   const Season = registry.register('Season', C.seasonSchema);
   const Leaderboard = registry.register('Leaderboard', C.leaderboardSchema);
+  const LeaderboardHistory = registry.register('LeaderboardHistory', C.leaderboardHistorySchema);
   const Portfolio = registry.register('Portfolio', C.portfolioSchema);
   const PaperTrade = registry.register('PaperTrade', C.paperTradeSchema);
   const TradeResult = registry.register('TradeResult', C.tradeResultSchema);
@@ -228,6 +229,13 @@ export function buildOpenApiDocument(): OpenAPIObject {
     tags: ['Competition'],
     summary: '전체 순위 (공개)',
     responses: jsonRes(Leaderboard),
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/api/competition/leaderboard/history',
+    tags: ['Competition'],
+    summary: '참가자별 총평가금액 추이 (공개, 라인차트용)',
+    responses: jsonRes(LeaderboardHistory),
   });
   registry.registerPath({
     method: 'get',

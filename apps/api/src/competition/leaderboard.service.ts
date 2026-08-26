@@ -4,11 +4,11 @@ import {
   OnApplicationBootstrap,
   OnApplicationShutdown,
 } from '@nestjs/common';
-import type { Leaderboard, LeaderboardEntry } from '@stock/contracts';
+import type { Leaderboard, LeaderboardEntry, LeaderboardHistory } from '@stock/contracts';
 import { KiwoomWsSession } from '../kiwoom/kiwoom-ws.session';
 import { PrismaService } from '../prisma/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
-import { LEADERBOARD_BROADCAST_MS } from './competition.constants';
+import { LEADERBOARD_BROADCAST_MS, SNAPSHOT_INTERVAL_MS } from './competition.constants';
 import { evaluateTotals } from './competition.mapper';
 import { PricebookService } from './pricebook.service';
 import { SeasonService, toSeason } from './season.service';
@@ -27,6 +27,7 @@ export class LeaderboardService implements OnApplicationBootstrap, OnApplication
   private dirty = true;
   private flushing = false;
   private timer: NodeJS.Timeout | null = null;
+  private snapshotTimer: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -44,15 +45,61 @@ export class LeaderboardService implements OnApplicationBootstrap, OnApplication
   async onApplicationBootstrap(): Promise<void> {
     await this.syncSubscriptions();
     this.timer = setInterval(() => void this.flush(), LEADERBOARD_BROADCAST_MS);
+    // 총평가금액 시계열 적재(라인차트용). 브로드캐스트보다 훨씬 성기게 남긴다.
+    this.snapshotTimer = setInterval(() => void this.snapshot(), SNAPSHOT_INTERVAL_MS);
   }
 
   onApplicationShutdown(): void {
     if (this.timer) clearInterval(this.timer);
+    if (this.snapshotTimer) clearInterval(this.snapshotTimer);
   }
 
   /** 공개 순위 조회(REST). */
   async getLeaderboard(): Promise<Leaderboard> {
     return this.compute();
+  }
+
+  /**
+   * 참가자별 총평가금액 추이(공개, 라인차트용). 적재된 스냅샷을 참가자별 시계열로 묶는다.
+   * 스냅샷이 아직 없는 참가자는 series 에 나타나지 않는다(그릴 점이 없다).
+   */
+  async getHistory(): Promise<LeaderboardHistory> {
+    const now = Date.now();
+    const seasonRow = await this.season.getActiveSeasonRow();
+    const snapshots = await this.prisma.portfolioSnapshot.findMany({
+      where: { seasonId: seasonRow.id },
+      orderBy: { createdAt: 'asc' },
+    });
+    // 참가자 id → 닉네임 (스냅샷은 닉네임을 담지 않으므로 조인 대신 한 번 읽어 매핑한다).
+    const portfolios = await this.prisma.portfolio.findMany({
+      where: { seasonId: seasonRow.id },
+      include: { participant: { select: { nickname: true } } },
+    });
+    const nickname = new Map(portfolios.map((p) => [p.participantId, p.participant.nickname]));
+
+    const byParticipant = new Map<string, LeaderboardHistory['series'][number]>();
+    for (const snap of snapshots) {
+      let series = byParticipant.get(snap.participantId);
+      if (!series) {
+        series = {
+          participantId: snap.participantId,
+          nickname: nickname.get(snap.participantId) ?? snap.participantId,
+          points: [],
+        };
+        byParticipant.set(snap.participantId, series);
+      }
+      series.points.push({
+        at: snap.createdAt.toISOString(),
+        totalValue: snap.totalValue,
+        totalProfitLossRate: snap.totalProfitLossRate,
+      });
+    }
+
+    return {
+      seasonId: seasonRow.id,
+      series: [...byParticipant.values()],
+      at: new Date(now).toISOString(),
+    };
   }
 
   /** 보유 구성이 바뀌었을 때(체결 후) — 구독 갱신 + 즉시 브로드캐스트. */
@@ -83,6 +130,25 @@ export class LeaderboardService implements OnApplicationBootstrap, OnApplication
       this.logger.warn(`리더보드 브로드캐스트 실패: ${(error as Error).message}`);
     } finally {
       this.flushing = false;
+    }
+  }
+
+  /** 현재 총평가금액을 참가자별로 한 점씩 적재한다(라인차트 시계열). */
+  private async snapshot(): Promise<void> {
+    try {
+      const leaderboard = await this.compute();
+      if (leaderboard.entries.length === 0) return;
+      const seasonId = leaderboard.season.id;
+      await this.prisma.portfolioSnapshot.createMany({
+        data: leaderboard.entries.map((entry) => ({
+          seasonId,
+          participantId: entry.participantId,
+          totalValue: Math.round(entry.totalValue),
+          totalProfitLossRate: entry.totalProfitLossRate,
+        })),
+      });
+    } catch (error) {
+      this.logger.warn(`스냅샷 적재 실패: ${(error as Error).message}`);
     }
   }
 

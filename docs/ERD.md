@@ -11,6 +11,8 @@ DB 는 "키움에 없는 것"만 보관한다. 시세·잔고·예수금의 진�
 - **실계좌 주문**(`Order`, `OrderEvent`) — 키움 주문 API 의 멱등성·상태추적·감사용.
 - **모의투자 경쟁**(`Participant`·`Season`·`Portfolio`·`Holding`·`PaperTrade`) — 여기서는 DB 가
   진실이다. 키움 주문 API 를 쓰지 않는다.
+- **총평가금액 추이**(`PortfolioSnapshot`) — 리더보드는 즉석 계산이라 이력이 없으므로, 주기적으로
+  참가자별 총평가금액을 append-only 로 적재한다(라인차트 시계열). FK 없는 독립 테이블.
 - **관심 종목**(`WatchlistItem`) — 참가자별 관심 종목. 코드+이름 스냅샷만 담고 시세는 저장하지 않는다.
 - `SymbolCache` — 어느 쪽에도 속하지 않는 종목 마스터 캐시(없어도 동작).
 - `ServiceUsageLog` — 전역 인터셉터가 모든 HTTP 요청을 append-only 로 적재하는 사용 이력(감사·분석).
@@ -118,6 +120,15 @@ erDiagram
         string   code PK
         string   name
         datetime updatedAt
+    }
+
+    PortfolioSnapshot {
+        string   id PK
+        string   seasonId "인덱스 (seasonId, createdAt)"
+        string   participantId
+        int      totalValue "총평가금액(원) — 라인차트 한 점"
+        float    totalProfitLossRate "총수익률 %"
+        datetime createdAt
     }
 
     WatchlistItem {

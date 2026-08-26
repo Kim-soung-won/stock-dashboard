@@ -182,3 +182,32 @@ export const leaderboardSchema = z.object({
   at: z.string(),
 });
 export type Leaderboard = z.infer<typeof leaderboardSchema>;
+
+/* --------------------------------------------- 리더보드 이력(총평가금액 추이) */
+
+/** 한 시점의 총평가금액 스냅샷. 라인차트의 한 점. */
+export const leaderboardHistoryPointSchema = z.object({
+  /** ISO 시각 */
+  at: z.string(),
+  /** 총평가금액(원) */
+  totalValue: z.number(),
+  /** 총수익률 % */
+  totalProfitLossRate: z.number(),
+});
+export type LeaderboardHistoryPoint = z.infer<typeof leaderboardHistoryPointSchema>;
+
+/** 참가자 1명의 시계열(오래된→최신). */
+export const leaderboardSeriesSchema = z.object({
+  participantId: z.string(),
+  nickname: z.string(),
+  points: z.array(leaderboardHistoryPointSchema),
+});
+export type LeaderboardSeries = z.infer<typeof leaderboardSeriesSchema>;
+
+/** 시즌의 참가자별 총평가금액 추이. 라인차트로 서로 비교한다. */
+export const leaderboardHistorySchema = z.object({
+  seasonId: z.string(),
+  series: z.array(leaderboardSeriesSchema),
+  at: z.string(),
+});
+export type LeaderboardHistory = z.infer<typeof leaderboardHistorySchema>;

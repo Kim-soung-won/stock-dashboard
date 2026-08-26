@@ -3,6 +3,7 @@ import type { Participant as ParticipantRow } from '@prisma/client';
 import type {
   ApiResponse,
   Leaderboard,
+  LeaderboardHistory,
   ListPayload,
   PaperTrade,
   Portfolio,
@@ -32,6 +33,12 @@ export class CompetitionController {
   @Get('leaderboard')
   async leaderboardSnapshot(): Promise<ApiResponse<Leaderboard>> {
     return ok(await this.leaderboard.getLeaderboard());
+  }
+
+  /** 참가자별 총평가금액 추이 (공개, 라인차트용). */
+  @Get('leaderboard/history')
+  async leaderboardHistory(): Promise<ApiResponse<LeaderboardHistory>> {
+    return ok(await this.leaderboard.getHistory());
   }
 
   /** 내 포트폴리오 (인증). */

@@ -37,6 +37,8 @@ export const API_ROUTES = {
     trades: '/api/competition/trades',
     /** 전체 순위(공개) */
     leaderboard: '/api/competition/leaderboard',
+    /** 참가자별 총평가금액 추이(공개, 라인차트용) */
+    leaderboardHistory: '/api/competition/leaderboard/history',
   },
   profile: {
     /** 공개 프로필 조회(SNS). 누구나 조회 가능 */

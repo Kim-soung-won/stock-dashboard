@@ -33,6 +33,7 @@ NestJS BFF(토큰·REST 프록시·단일 WS 세션·주문 저널·페이퍼 �
 | Auth | `GET /api/auth/me` `[인증]` | 현재 토큰의 참가자 | `auth/` |
 | Competition | `GET /api/competition/season` | 활성 시즌(공개) | `competition/` |
 | Competition | `GET /api/competition/leaderboard` | 전체 순위(공개) | `competition/` |
+| Competition | `GET /api/competition/leaderboard/history` | 참가자별 총평가금액 추이(공개, 라인차트) | `competition/` |
 | Competition | `GET /api/competition/portfolio` `[인증]` | 내 포트폴리오(현금+보유+평가) | `competition/` |
 | Competition | `POST /api/competition/trade` `[인증]` | 시장가 페이퍼 매매 | `competition/` |
 | Competition | `GET /api/competition/trades` `[인증]` | 내 체결 이력 | `competition/` |
@@ -69,13 +70,13 @@ NestJS BFF(토큰·REST 프록시·단일 WS 세션·주문 저널·페이퍼 �
 현재 스펙: `auth/auth.tokens`, `auth/auth.service`(로그인 분기), `kiwoom/realtime.mapper`,
 `market/market.mapper`, `market/ranking.mapper`, `account/account.mapper`,
 `competition/competition.mapper`, `competition/competition.service`(매수·매도 돈계산·가드),
-`trading/order-journal.service`(멱등 선점), `watchlist/watchlist.service`, `profile/profile.service`,
-`common/usage-logging.interceptor`.
-아직 없는 곳(로직 있는 것): `leaderboard.service`(순위 계산), `market/account.service`(얇은 오케스트레이션).
+`trading/order-journal.service`(멱등 선점), `competition/leaderboard.service`(이력 그룹화),
+`watchlist/watchlist.service`, `profile/profile.service`, `common/usage-logging.interceptor`.
+아직 없는 곳(로직 있는 것): `leaderboard.service`(순위 정렬 부분), `market/account.service`(얇은 오케스트레이션).
 새 엔드포인트·서비스는 계약 spec 을 위 기능 표 갱신과 **한 묶음으로** 추가한다.
 
 ## DB 모델
 
 `prisma/schema.prisma` — `Order`·`OrderEvent`(실계좌 주문), `Participant`·`Season`·`Portfolio`·
-`Holding`·`PaperTrade`(경쟁), `WatchlistItem`(관심종목), `SymbolCache`(종목 캐시),
+`Holding`·`PaperTrade`·`PortfolioSnapshot`(경쟁), `WatchlistItem`(관심종목), `SymbolCache`(종목 캐시),
 `ServiceUsageLog`(사용 이력). 관계·제약 다이어그램은 `../../docs/ERD.md`.
