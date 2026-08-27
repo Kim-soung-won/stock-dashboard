@@ -47,6 +47,33 @@ pnpm dev
 > `pnpm dev` 실행 시 콘솔에 찍히는 `Network: http://<IP>:5173` 주소로 같은 네트워크의
 > 기기에서 열 수 있다. macOS 방화벽이 node 수신 연결을 물으면 허용한다.
 
+## 배포 (Docker · 리눅스 서버)
+
+외부에 여는 포트는 **10888 하나**다. nginx(web)가 정적 산출물을 서빙하고 같은 오리진의
+`/api`·`/ws` 를 내부 api 컨테이너로 리버스 프록시한다. DB 는 외부(Supabase Postgres)라
+컨테이너로 띄우지 않고 `.env` 의 URL 로 붙는다.
+
+```bash
+# 1) 환경변수 (서버에서도 루트 .env 하나만 쓴다)
+cp .env.example .env    # 키움 키 · SESSION_SECRET · DATABASE_URL/DIRECT_URL 채우기
+
+# 2) 빌드 후 기동 (마이그레이션은 api 컨테이너 시작 시 자동 적용)
+docker compose up -d --build
+
+# 접속: http://<서버IP>:10888
+```
+
+| 파일 | 역할 |
+| --- | --- |
+| `Dockerfile.api` | 패키지→BFF 빌드, 런타임에 `prisma migrate deploy` 후 기동 (내부 :4000) |
+| `Dockerfile.web` | 프론트 빌드 → nginx 로 정적 서빙 (:10888) |
+| `docker/nginx.conf` | SPA 폴백 + `/api`·`/ws`(WebSocket) 프록시 |
+| `docker-compose.yml` | web(10888 공개) + api(내부) 두 서비스 |
+
+> 운영 도메인이 있으면 `.env` 의 `WEB_ORIGIN` 을 그 주소(예: `https://stock.example.com`)로
+> 두는 것을 권장한다. 프록시로 같은 오리진이라 CORS 상 필수는 아니다. HTTPS 는 이 앞단에
+> 별도 리버스 프록시(Caddy/Traefik 등)를 두거나 `nginx.conf` 에 인증서를 추가해 처리한다.
+
 ## 명령
 
 ```bash

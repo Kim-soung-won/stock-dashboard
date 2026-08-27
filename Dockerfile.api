@@ -1,0 +1,40 @@
+# syntax=docker/dockerfile:1
+# ---------------------------------------------------------------------------
+# BFF(NestJS) 이미지. 공용 패키지(contracts·kiwoom-codes) → api 순으로 빌드하고,
+# 런타임에 prisma migrate deploy 후 기동한다. DB 는 외부(Supabase Postgres)라
+# 컨테이너로 띄우지 않는다 — DATABASE_URL / DIRECT_URL 을 환경변수로 주입한다.
+# ---------------------------------------------------------------------------
+
+FROM node:22-bookworm-slim AS base
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+# prisma 엔진은 openssl 을 필요로 한다(slim 이미지에 없음).
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/* \
+  && corepack enable
+WORKDIR /app
+
+# ---- 의존성 설치 (매니페스트만 먼저 복사해 레이어 캐시를 살린다) ----
+FROM base AS deps
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.base.json ./
+COPY packages/contracts/package.json packages/contracts/
+COPY packages/kiwoom-codes/package.json packages/kiwoom-codes/
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+
+# ---- 빌드 ----
+FROM deps AS build
+COPY . .
+RUN pnpm build:packages \
+  && pnpm --filter @stock/api exec prisma generate \
+  && pnpm --filter @stock/api build
+
+# ---- 런타임 ----
+FROM base AS runtime
+ENV NODE_ENV=production
+# 빌드 산출물 + 설치된 node_modules(생성된 prisma client 포함)를 그대로 가져온다.
+COPY --from=build /app /app
+EXPOSE 4000
+# 기동 전에 대기 중인 마이그레이션을 적용한다(멱등, 이미 적용됐으면 no-op).
+CMD ["sh", "-c", "pnpm --filter @stock/api exec prisma migrate deploy && node apps/api/dist/main.js"]

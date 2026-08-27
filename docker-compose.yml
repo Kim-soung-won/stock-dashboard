@@ -1,0 +1,47 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: stock-api:latest
+    container_name: stock-bff
+    platform: linux/amd64
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # 컨테이너 내부 고정 포트(호스트로 노출하지 않는다).
+      PORT: 4000
+      # nginx 를 통해 같은 오리진으로 들어오므로 CORS 대상 오리진을 프록시 오리진으로 둔다.
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:10888}
+    expose:
+      - "4000"
+    networks:
+      - stock
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    image: stock-web:latest
+    container_name: stock-web
+    platform: linux/amd64
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "10888:10888"
+    networks:
+      - stock
+
+networks:
+  stock:
+    # 프로젝트명 프리픽스 없이 실제 네트워크 이름을 'stock' 으로 고정한다.
+    name: stock
+    driver: bridge
