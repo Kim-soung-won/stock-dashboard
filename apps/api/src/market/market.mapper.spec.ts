@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   marketCapOf,
   rankSymbolMatches,
-  toDailyCandles,
+  toPeriodCandles,
   toMarketCapRanking,
   toOrderBook,
   toQuote,
@@ -50,9 +50,9 @@ describe('toQuote', () => {
   });
 });
 
-describe('toDailyCandles', () => {
+describe('toPeriodCandles', () => {
   it('과거→현재 순으로 정렬하고 날짜 없는 행은 버린다', () => {
-    const candles = toDailyCandles([
+    const candles = toPeriodCandles([
       { dt: '20260826', cur_prc: '100' },
       { dt: '', cur_prc: '999' }, // 버려진다
       { dt: '20260824', cur_prc: '90' },

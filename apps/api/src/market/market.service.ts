@@ -13,15 +13,15 @@ import type {
 } from '@stock/contracts';
 import { KiwoomRestClient } from '../kiwoom/kiwoom-rest.client';
 import { PrismaService } from '../prisma/prisma.service';
-import { normalizeStockCode, parseAmount } from '@stock/kiwoom-codes';
+import { normalizeStockCode, parseAmount, type RestApiId } from '@stock/kiwoom-codes';
 import { toRankingItems } from './ranking.mapper';
 import type { TrRankingKind } from './ranking.mapper';
 import {
   marketCapOf,
   rankSymbolMatches,
-  toDailyCandles,
   toMarketCapRanking,
   toMinuteCandles,
+  toPeriodCandles,
   toOrderBook,
   toQuote,
   toSymbols,
@@ -35,13 +35,24 @@ const MARKET_TP: Readonly<Record<'kospi' | 'kosdaq' | 'etf', string>> = {
   etf: '8',
 };
 
-/** ka10080 `tic_scope` 값. */
-const TIC_SCOPE: Readonly<Record<Exclude<CandleInterval, 'day'>, string>> = {
+/** ka10080 `tic_scope` 값 (분봉 전용). */
+const TIC_SCOPE: Partial<Record<CandleInterval, string>> = {
   '1m': '1',
   '5m': '5',
   '15m': '15',
   '30m': '30',
   '60m': '60',
+};
+
+/**
+ * 일/주/월/연봉 조회 — TR 과 응답 배열 키. 요청 파라미터(stk_cd·base_dt·upd_stkpc_tp)와
+ * 응답 필드(dt·OHLCV)가 모두 같아 변환(toPeriodCandles)을 공유한다.
+ */
+const PERIOD_CHART: Partial<Record<CandleInterval, { tr: RestApiId; key: string }>> = {
+  day: { tr: 'ka10081', key: 'stk_dt_pole_chart_qry' },
+  week: { tr: 'ka10082', key: 'stk_stk_pole_chart_qry' },
+  month: { tr: 'ka10083', key: 'stk_mth_pole_chart_qry' },
+  year: { tr: 'ka10094', key: 'stk_yr_pole_chart_qry' },
 };
 
 /** 순위 TR 의 시장구분 값. 조회계 mrkt_tp 는 3자리다(종목 마스터의 mrkt_tp 와 다르다). */
@@ -217,14 +228,17 @@ export class MarketService implements OnModuleInit {
   async getCandles(code: string, interval: CandleInterval, baseDate?: string): Promise<Candle[]> {
     const base = baseDate ?? this.today();
 
-    if (interval === 'day') {
-      const result = await this.kiwoom.call<{ stk_dt_pole_chart_qry?: Record<string, string>[] }>(
-        'ka10081',
+    // 일/주/월/연봉 — 같은 요청/응답 구조, 응답 배열 키만 다르다.
+    const period = PERIOD_CHART[interval];
+    if (period) {
+      const result = await this.kiwoom.call<Record<string, Record<string, string>[] | undefined>>(
+        period.tr,
         { stk_cd: code, base_dt: base, upd_stkpc_tp: '1' },
       );
-      return toDailyCandles(result.data.stk_dt_pole_chart_qry ?? []);
+      return toPeriodCandles(result.data[period.key] ?? []);
     }
 
+    // 분봉 — ka10080, tic_scope 로 간격을 지정한다.
     const scope = TIC_SCOPE[interval];
     if (!scope) throw new BadRequestException(`지원하지 않는 봉 간격: ${interval}`);
     const result = await this.kiwoom.call<{ stk_min_pole_chart_qry?: Record<string, string>[] }>(

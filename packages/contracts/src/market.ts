@@ -63,7 +63,17 @@ export const candleSchema = z.object({
 });
 export type Candle = z.infer<typeof candleSchema>;
 
-export const candleIntervalSchema = z.enum(['1m', '5m', '15m', '30m', '60m', 'day']);
+export const candleIntervalSchema = z.enum([
+  '1m',
+  '5m',
+  '15m',
+  '30m',
+  '60m',
+  'day',
+  'week',
+  'month',
+  'year',
+]);
 export type CandleInterval = z.infer<typeof candleIntervalSchema>;
 
 /** 호가 한 단계 */

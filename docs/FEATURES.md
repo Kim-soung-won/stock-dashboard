@@ -20,6 +20,7 @@
 | 인기·순위 | ✅ | `GET /api/market/ranking/:kind` · 메인 화면 | `ranking.mapper` |
 | **시가총액 순위** | ⚠️✅ | 같은 엔드포인트(`kind=marketCap`) · 메인 화면 | `market.mapper`(`marketCapOf`·`toMarketCapRanking`) |
 | 캔들 차트 (종목명 표기) | ✅ | (candles) · 메인/종목 탐색/관심종목 | `chart.libs`·`selected-symbol` |
+| 봉 간격 (분·일·주·월·연) | ✅ | `GET /api/market/candles/:code?interval` · 차트 토글 | `market.mapper`·`market.service`(라우팅) |
 | 선택 종목 즉시 주문 | ✅ | `POST /api/competition/trade` · 차트 옆 주문 창 | `symbol.model`(프리필) |
 | 실시간 체결 스트림 | ✅ | `WS /ws` (tick·orderBook) | `realtime.mapper` |
 

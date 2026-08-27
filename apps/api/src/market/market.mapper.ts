@@ -173,8 +173,12 @@ export const toQuote = (row: Row): Quote => ({
   at: nowIso(),
 });
 
-/** ka10081 주식일봉차트조회요청 → 봉 배열 (오래된 것부터) */
-export const toDailyCandles = (rows: Row[]): Candle[] =>
+/**
+ * 기간 봉 배열 (오래된 것부터).
+ * 일/주/월/연봉(ka10081·ka10082·ka10083·ka10094)은 요청·응답 필드(`dt`·OHLCV)가 모두 같고
+ * 응답 배열 키만 다르므로 이 변환 하나를 공유한다. 분봉(ka10080)만 시각 필드가 달라 별도다.
+ */
+export const toPeriodCandles = (rows: Row[]): Candle[] =>
   rows
     .map((row) => ({
       at: parseYmd(row['dt']) ?? '',

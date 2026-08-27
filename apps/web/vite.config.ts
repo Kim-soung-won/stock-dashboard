@@ -12,8 +12,8 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,
     port: 5173,
-    // 개발 중에는 BFF 를 프록시로 붙여 CORS 를 신경 쓰지 않는다.
     proxy: {
       '/api': { target: BFF_ORIGIN, changeOrigin: true },
       '/ws': { target: BFF_ORIGIN, ws: true },

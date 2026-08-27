@@ -7,6 +7,13 @@
 
 ## 2026-08-27
 
+### 주봉·월봉·연봉 추가
+분봉·일봉만 있던 차트에 주/월/연봉을 더했다. 세 봉은 키움 TR(ka10082·10083·10094)이
+일봉(ka10081)과 **요청 파라미터·응답 필드(dt·OHLCV)가 모두 같고 응답 배열 키만 다르다** —
+그래서 변환 함수 하나(`toPeriodCandles`, 기존 `toDailyCandles` 를 개칭)를 공유하고, 서비스는
+`interval → { TR, 배열키 }` 맵으로 라우팅만 나눈다. 차트 토글에 주·월·연 버튼 노출.
+- 삼성전자 실측: 주봉 300 / 월봉 240 / 연봉 30개 정상 조회. getCandles 라우팅 spec 추가.
+
 ### 실계좌 조회 스위치 (ACCOUNT_ENABLED)
 실전(`KIWOOM_ENV=real`) 환경에서 실계좌 잔고·미체결 조회를 **환경변수로 잠시 끌 수 있게** 했다.
 - `ACCOUNT_ENABLED=false`(대소문자 무관, 기본 활성)면 `AccountEnabledGuard` 가 `/api/account/*`
