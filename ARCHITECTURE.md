@@ -16,7 +16,7 @@
                                 │    ├ REST 프록시 + 유량 스로틀 + 연속조회 루프
                                 │    ├ 키움 WS 단일 세션 (LOGIN/REG/PING) → 팬아웃
                                 │    ├ 어댑터: 부호·단위·문자열 → 도메인 모델
-                                │    └ 주문 저널 (Prisma/SQLite)
+                                │    └ 주문 저널 (Prisma/PostgreSQL·Supabase)
                                 └── 키움 (api.kiwoom.com / wss:10000)
 ```
 
@@ -45,8 +45,9 @@ DB가 필요한 이유는 데이터 보관이 아니라 **주문 멱등성과 �
 | `OrderEvent` | 상태 전이 이력(append-only). 손익 재계산·감사 근거 |
 | `SymbolCache` | 종목 마스터(ka10099) 캐시. 없어도 동작하지만 유량을 아낀다 |
 
-SQLite로 시작한다. 자동매매를 여러 프로세스로 돌리거나 봉 데이터를 대량 축적하게 되면
-Postgres로 옮긴다(스키마는 그대로 옮겨진다).
+저장소는 **PostgreSQL(Supabase)** 다. 런타임은 pgbouncer 트랜잭션 풀러(`DATABASE_URL`, 6543),
+마이그레이션은 직결(`DIRECT_URL`)로 붙는다. (초기엔 SQLite로 시작했으나, 여러 프로세스·대량
+축적을 대비해 Postgres로 옮겼다 — Prisma 스키마는 그대로 이관됐다.)
 
 ## 주문 경로 (가장 조심할 부분)
 

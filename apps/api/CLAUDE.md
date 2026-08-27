@@ -34,7 +34,7 @@ NestJS BFF(토큰·REST 프록시·단일 WS 세션·주문 저널·페이퍼 �
 | Auth | `GET /api/auth/me` `[인증]` | 현재 토큰의 참가자 | `auth/` |
 | Competition | `GET /api/competition/season` | 활성 시즌(공개) | `competition/` |
 | Competition | `GET /api/competition/leaderboard` | 전체 순위(공개) | `competition/` |
-| Competition | `GET /api/competition/leaderboard/history` | 참가자별 총평가금액 추이(공개, 라인차트) | `competition/` |
+| Competition | `GET /api/competition/leaderboard/history` | 참가자별 일별 종가 추이(공개, 최근 30일 라인차트, 신규 참가자 이전 구간 시드 백필) | `competition/` |
 | Competition | `GET /api/competition/portfolio` `[인증]` | 내 포트폴리오(현금+보유+평가) | `competition/` |
 | Competition | `POST /api/competition/trade` `[인증]` | 시장가 페이퍼 매매 | `competition/` |
 | Competition | `GET /api/competition/trades` `[인증]` | 내 체결 이력 | `competition/` |
@@ -49,6 +49,7 @@ NestJS BFF(토큰·REST 프록시·단일 WS 세션·주문 저널·페이퍼 �
 | 채널 | 설명 | 위치 |
 | --- | --- | --- |
 | `WS /ws` | 단일 실시간 게이트웨이. 시세 틱(0B 등) 구독/팬아웃, 경쟁 `leaderboard` 2초 팬아웃, `sessionState`/`error` 브로드캐스트 | `realtime/` |
+| (크론) `SNAPSHOT_CRON` | 평일 15:30(KST) 일별 종가 스냅샷 적재(`@nestjs/schedule`) — 추이 라인차트용 시계열 | `competition/leaderboard.service.ts` |
 
 ## 횡단 관심사
 

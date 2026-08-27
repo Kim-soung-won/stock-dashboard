@@ -38,7 +38,7 @@ React + Vite 대시보드(FSD 4계층). 이 파일은 **이 앱의 기능 인벤
 | 도메인 | feature | 역할 |
 | --- | --- | --- |
 | auth/login | `form-login` | 닉네임+PIN 참가/로그인 |
-| competition/leaderboard | `table-leaderboard`·`chart-leaderboard` | 실시간 순위표(WS) + 총평가금액 추이 라인차트(ECharts, 스냅샷 REST) |
+| competition/leaderboard | `table-leaderboard`·`chart-leaderboard` | 실시간 순위표(WS) + **일별 종가 추이 라인차트**(ECharts, 최근 30일, 일별 스냅샷 REST) |
 | competition/portfolio | `summary-portfolio`·`table-holdings`·`table-trades` | 포트폴리오 요약·보유·체결 |
 | competition/trade | `form-trade`(+`trade-confirm` 코로케이션) | 시장가 페이퍼 매매(종목명 검색 + `symbol` prop 프리필, **장 운영시간 밖 잠금**, **확인 다이얼로그로 예수금 영향 안내 후 체결**) |
 | market/chart | `chart-candle` | 봉 차트(ECharts). 헤더에 **종목명** 표기(`name` prop) |

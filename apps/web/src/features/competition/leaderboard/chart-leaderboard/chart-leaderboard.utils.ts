@@ -38,9 +38,11 @@ export const buildLeaderboardHistoryOption = (lines: HistoryLine[]): EChartsOpti
     legend: { textStyle: { color: textDim }, top: 0, type: 'scroll' },
     grid: { left: 8, right: 16, bottom: 24, top: 32, containLabel: true },
     xAxis: {
+      // 일별 종가 스냅샷이라 눈금은 하루 단위(MM-DD). 주말은 금→월로 자연스럽게 이어진다.
       type: 'time',
+      minInterval: 24 * 3600 * 1000,
       axisLine: { lineStyle: { color: line } },
-      axisLabel: { color: textDim },
+      axisLabel: { color: textDim, formatter: '{MM}-{dd}' },
     },
     yAxis: {
       type: 'value',
@@ -52,7 +54,8 @@ export const buildLeaderboardHistoryOption = (lines: HistoryLine[]): EChartsOpti
     series: lines.map((entry, index) => ({
       name: entry.nickname,
       type: 'line',
-      showSymbol: false,
+      showSymbol: true,
+      symbolSize: 4,
       smooth: false,
       data: entry.points,
       z: entry.highlighted ? 10 : 1,

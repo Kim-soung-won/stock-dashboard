@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AccountModule } from './account/account.module';
 import { AuthModule } from './auth/auth.module';
 import { CompetitionModule } from './competition/competition.module';
@@ -15,6 +16,7 @@ import { ProfileModule } from './profile/profile.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     KiwoomModule,
     PrismaModule,
     MarketModule,

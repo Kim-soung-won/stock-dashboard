@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 각자 100만원 시드로 실시간 시세로 겨루는 페이퍼 트레이딩). pnpm 워크스페이스 모노레포.
 
 ```
-apps/api        NestJS BFF (토큰·REST 프록시·단일 WS 세션·주문 저널) + Prisma/SQLite
+apps/api        NestJS BFF (토큰·REST 프록시·단일 WS 세션·주문 저널) + Prisma/PostgreSQL(Supabase)
 apps/web        React + Vite 대시보드 (FSD 4계층)
 packages/contracts     BFF ↔ web 공용 zod 계약 + 라우트 상수
 packages/kiwoom-codes  스펙에서 생성한 api-id 카탈로그 / 실시간 FID / 에러코드 + 값 파서
@@ -144,10 +144,13 @@ git 저장소이지만 아직 커밋이 없다(`main` 브랜치, 초기 커밋 �
 경쟁 로그인 토큰은 `SESSION_SECRET`(HMAC 서명 키)으로 서명한다 — `.env.example` 에 있고
 개발용 기본값이 있으나 운영에서는 교체한다. 바꾸면 발급된 모든 토큰이 무효가 된다.
 
+DB 는 **원격 PostgreSQL(Supabase)** 를 쓴다 — 런타임은 `DATABASE_URL`(pgbouncer 트랜잭션
+풀러, 6543), 마이그레이션은 `DIRECT_URL`(직결). 로컬 SQLite 파일은 없다.
+
 `.env` 는 루트 하나만 쓰고 커밋하지 않는다(`.env.example` 만 커밋). `.gitignore` 는
-`dist/`·`node_modules/`·SQLite DB(`apps/api/prisma/*.db`)를 제외하고, `.dockerignore` 는
-추가로 스펙 원본(2.4MB)과 `.claude/` 조회 스킬까지 제외한다 — 생성된 TS 는 커밋된
-소스라서 런타임 이미지에 스펙이 필요 없다.
+`dist/`·`node_modules/` 를 제외하고, `.dockerignore` 는 추가로 스펙 원본(2.4MB)과
+`.claude/` 조회 스킬까지 제외한다 — 생성된 TS 는 커밋된 소스라서 런타임 이미지에
+스펙이 필요 없다.
 
 ---
 
