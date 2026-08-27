@@ -41,8 +41,9 @@
 
 | 기능 | 상태 | 엔드포인트 · 화면 | 스펙 |
 | --- | --- | --- | --- |
-| 잔고·손익 | ✅ | `GET /api/account/balance` · `/account/balance` | `account.mapper` |
-| 미체결 주문 | ✅ | `GET /api/account/pending-orders` | `account.mapper` |
+| 잔고·손익 | ⚠️✅ | `GET /api/account/balance` · `/account/balance` | `account.mapper` |
+| 미체결 주문 | ⚠️✅ | `GET /api/account/pending-orders` | `account.mapper` |
+| 실계좌 조회 스위치 | ✅ | `ACCOUNT_ENABLED` env · health `accountEnabled` | `account-enabled.guard` |
 | 주문 접수·취소 (멱등) | ✅ | `POST /api/trading/orders(/cancel)` · `/trading/order` | `order-journal.service` |
 | 주문가능 조회 | 🟢 | `GET /api/trading/orderability/:code` | — |
 | 주문 저널 | ✅ | `GET /api/trading/orders` | `order-journal.service` |
@@ -80,6 +81,12 @@
 | 에러 리포트·디버그 패널 | ✅ | `Ctrl+Shift+D` | `error-report`·`debug-log`·`error-boundary` |
 
 ## 알아둘 점 (⚠️)
+
+- **실계좌 조회 스위치**: `ACCOUNT_ENABLED=false`(대소문자 무관)면 `/api/account/*` 가 503 을
+  돌려주고(`AccountEnabledGuard`), health `accountEnabled:false` → 프론트가 잔고 메뉴·페이지를
+  감춘다. 기본 활성. **페이퍼 트레이딩·시세·주문(trading)에는 영향 없다** — 실계좌 잔고/미체결
+  조회만 끈다.
+
 
 - **리더보드 추이 라인차트**: 총평가금액 스냅샷을 도입 시점부터 주기 적재(기본 5분,
   `SNAPSHOT_INTERVAL_MS`)한다. **과거는 소급 복원 불가**(과거 시세를 저장하지 않음).

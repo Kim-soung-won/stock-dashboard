@@ -19,6 +19,14 @@ const envSchema = z.object({
   KIWOOM_SECRET_KEY: z.string().min(1, 'KIWOOM_SECRET_KEY 가 필요합니다'),
   /** mock 이 기본값. real 로 바꾸면 실제 주문이 체결된다. */
   KIWOOM_ENV: z.enum(['mock', 'real']).default('mock'),
+  /**
+   * 실계좌 조회(잔고·미체결) 기능 스위치. 기본 활성이고, `false`(대소문자 무관)일 때만 끈다.
+   * 끄면 `/api/account/*` 가 503 을 돌려주고, 프론트는 잔고 메뉴·페이지를 감춘다.
+   */
+  ACCOUNT_ENABLED: z
+    .string()
+    .optional()
+    .transform((value) => (value ?? 'true').toLowerCase() !== 'false'),
   PORT: z.coerce.number().int().positive().default(4000),
   WEB_ORIGIN: z.string().default('http://localhost:5173'),
   /**

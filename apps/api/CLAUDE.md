@@ -24,8 +24,8 @@ NestJS BFF(토큰·REST 프록시·단일 WS 세션·주문 저널·페이퍼 �
 | Market | `GET /api/market/candles/:code?interval,baseDate` | 봉(일/분봉) | `market/` |
 | Market | `GET /api/market/ranking/:kind?market` | 순위(views·volume·value·gainers·losers·**marketCap**). marketCap 만 키움 TR 이 아니라 SymbolCache 파생값(상장주식수x전일종가) | `market/` |
 | Market | `GET /api/market/order-book/:code` | 호가창 | `market/` |
-| Account | `GET /api/account/balance` | 잔고+보유(키움 스냅샷) | `account/` |
-| Account | `GET /api/account/pending-orders?code` | 미체결 주문 | `account/` |
+| Account | `GET /api/account/balance` | 잔고+보유(키움 스냅샷) · `ACCOUNT_ENABLED=false` 면 503 | `account/` |
+| Account | `GET /api/account/pending-orders?code` | 미체결 주문 · 위와 같이 게이트 | `account/` |
 | Trading | `POST /api/trading/orders` | 주문 접수(멱등키 필수) | `trading/` |
 | Trading | `POST /api/trading/orders/cancel` | 주문 취소 | `trading/` |
 | Trading | `GET /api/trading/orderability/:code?price` | 주문가능 금액·수량 | `trading/` |
@@ -57,7 +57,8 @@ NestJS BFF(토큰·REST 프록시·단일 WS 세션·주문 저널·페이퍼 �
 | 사용 이력 적재 | 전역 인터셉터가 모든 HTTP 요청을 `ServiceUsageLog` 에 append(토큰 우선 + `X-User-Id` 보완, 비차단) | `common/usage-logging.interceptor.ts` |
 | API 문서(Swagger) | `/docs` — zod 계약에서 OpenAPI 생성(데코레이터 없음) | `docs/openapi.ts` |
 | 예외 봉투화 | 모든 예외를 `{ code, message, data }` 로 변환 | `common/all-exceptions.filter.ts` |
-| 환경설정 | 루트 `.env` 로드 + zod 검증, `KIWOOM_ENV` 전환 | `config/env.ts` |
+| 환경설정 | 루트 `.env` 로드 + zod 검증, `KIWOOM_ENV`·`ACCOUNT_ENABLED` 스위치 | `config/env.ts` |
+| 실계좌 조회 스위치 | `ACCOUNT_ENABLED=false` 면 `/api/account/*` 를 503 으로 막음 | `account/account-enabled.guard.ts` |
 
 ## 테스트
 
@@ -72,7 +73,8 @@ NestJS BFF(토큰·REST 프록시·단일 WS 세션·주문 저널·페이퍼 �
 `market/market.mapper`, `market/ranking.mapper`, `account/account.mapper`,
 `competition/competition.mapper`, `competition/competition.service`(매수·매도 돈계산·가드),
 `trading/order-journal.service`(멱등 선점), `competition/leaderboard.service`(이력 그룹화),
-`watchlist/watchlist.service`, `profile/profile.service`, `common/usage-logging.interceptor`.
+`watchlist/watchlist.service`, `profile/profile.service`, `common/usage-logging.interceptor`,
+`account/account-enabled.guard`(기능 스위치).
 아직 없는 곳(로직 있는 것): `leaderboard.service`(순위 정렬 부분), `market/account.service`(얇은 오케스트레이션).
 새 엔드포인트·서비스는 계약 spec 을 위 기능 표 갱신과 **한 묶음으로** 추가한다.
 

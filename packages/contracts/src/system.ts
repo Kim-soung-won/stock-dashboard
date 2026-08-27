@@ -7,6 +7,11 @@ export const healthSchema = z.object({
   kiwoomEnv: tradingEnvSchema,
   upstream: z.enum(['connecting', 'ready', 'disconnected']),
   subscribedCodes: z.number(),
+  /**
+   * 실계좌 조회(잔고·미체결) 기능 활성 여부(ACCOUNT_ENABLED). false 면 프론트가 잔고
+   * 메뉴·페이지를 감춘다. 구버전 서버 호환을 위해 없으면 활성으로 본다.
+   */
+  accountEnabled: z.boolean().default(true),
 });
 
 export type Health = z.infer<typeof healthSchema>;

@@ -84,7 +84,13 @@ export const AppLayout = () => {
           <ThemeToggle />
           <ModeToggle />
 
-          {participant ? <UserMenu participant={participant} onLogout={onLogout} /> : null}
+          {participant ? (
+            <UserMenu
+              participant={participant}
+              onLogout={onLogout}
+              accountEnabled={health?.accountEnabled ?? true}
+            />
+          ) : null}
         </div>
       </header>
 

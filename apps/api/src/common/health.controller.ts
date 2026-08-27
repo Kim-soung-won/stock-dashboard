@@ -9,6 +9,8 @@ interface Health {
   kiwoomEnv: 'mock' | 'real';
   upstream: 'connecting' | 'ready' | 'disconnected';
   subscribedCodes: number;
+  /** 실계좌 조회 기능 활성 여부(ACCOUNT_ENABLED). */
+  accountEnabled: boolean;
 }
 
 @Controller('api/health')
@@ -24,6 +26,7 @@ export class HealthController {
       kiwoomEnv: this.env.KIWOOM_ENV,
       upstream: this.session.currentState,
       subscribedCodes: this.session.subscribedCount,
+      accountEnabled: this.env.ACCOUNT_ENABLED,
     });
   }
 }
